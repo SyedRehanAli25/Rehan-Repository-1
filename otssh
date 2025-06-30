@@ -1,0 +1,92 @@
+#!/bin/bash
+
+CONFIG_FILE="./otssh.config"
+
+# Helper: get line for a connection
+get_connection_line() {
+  grep "^$1:" "$CONFIG_FILE"
+}
+
+# Add connection
+if [[ "$1" == "-a" ]]; then
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -n) NAME="$2"; shift ;;
+      -h) HOST="$2"; shift ;;
+      -u) USER="$2"; shift ;;
+      -p) PORT="$2"; shift ;;
+      -i) KEY="$2"; shift ;;
+    esac
+    shift
+  done
+
+  echo "$NAME:$HOST:$USER:${PORT:-22}:${KEY:-}" >> "$CONFIG_FILE"
+  echo "[INFO]: Connection $NAME added successfully."
+  exit 0
+fi
+
+# Edit connection
+if [[ "$1" == "-e" ]]; then
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -n) NAME="$2"; shift ;;
+      -h) HOST="$2"; shift ;;
+      -u) USER="$2"; shift ;;
+      -p) PORT="$2"; shift ;;
+      -i) KEY="$2"; shift ;;
+    esac
+    shift
+  done
+
+  sed -i "/^$NAME:/d" "$CONFIG_FILE"
+  echo "$NAME:$HOST:$USER:${PORT:-22}:${KEY:-}" >> "$CONFIG_FILE"
+  echo "[INFO]: Connection $NAME updated successfully."
+  exit 0
+fi
+
+# Delete connection
+if [[ "$1" == "-r" ]]; then
+  sed -i "/^$2:/d" "$CONFIG_FILE"
+  echo "[INFO]: Connection $2 removed."
+  exit 0
+fi
+
+# List names only
+if [[ "$1" == "-l" ]]; then
+  cut -d':' -f1 "$CONFIG_FILE"
+  exit 0
+fi
+
+# List with details
+if [[ "$1" == "-ld" ]]; then
+  while IFS=: read -r name host user port key; do
+    CMD="ssh"
+    [[ -n "$key" ]] && CMD+=" -i $key"
+    [[ -n "$port" ]] && CMD+=" -p $port"
+    CMD+=" $user@$host"
+    echo "$name: $CMD"
+  done < "$CONFIG_FILE"
+  exit 0
+fi
+
+# Connect to server
+if [[ -n "$1" ]]; then
+  LINE=$(get_connection_line "$1")
+  if [[ -z "$LINE" ]]; then
+    echo "[ERROR]: Server information is not available, please add server first"
+    exit 1
+  fi
+
+  IFS=: read -r name host user port key <<< "$LINE"
+  CMD="ssh"
+  [[ -n "$key" ]] && CMD+=" -i $key"
+  [[ -n "$port" ]] && CMD+=" -p $port"
+  CMD+=" $user@$host"
+  echo "[INFO]: Connecting to $host as $user..."
+  exec $CMD
+fi
+
+# If none matched
+echo "[ERROR]: Invalid command."
+exit 1
+
