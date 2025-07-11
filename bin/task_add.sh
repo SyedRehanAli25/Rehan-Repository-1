@@ -4,7 +4,7 @@ meta_file="$1"
 
 # Validate file
 if [ ! -f "$meta_file" ]; then
-  echo "❌ Metadata file not found!"
+  echo " Metadata file not found!"
   exit 1
 fi
 
@@ -14,7 +14,7 @@ script_path=$(jq -r '.script_path' "$meta_file")
 
 # Check if values are not null
 if [[ "$task_name" == "null" || "$script_path" == "null" ]]; then
-  echo "❌ Invalid metadata. Please check required fields (task_name, script_path)."
+  echo " Invalid metadata. Please check required fields (task_name, script_path)."
   exit 1
 fi
 
