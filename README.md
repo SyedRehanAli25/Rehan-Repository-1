@@ -1,4 +1,4 @@
-# TaskManager
+# Jenkins TaskManager Project
 
 **TaskManager** is a simple modular Bash-based utility to manage manual and scheduled task execution with support for metadata, logging, email notifications, and execution history.
 
