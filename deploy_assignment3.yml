@@ -1,0 +1,16 @@
+# infra_setup_role/tasks/deploy_assignment3.yml
+
+- name: Copy WAR file to Tomcat webapps
+  copy:
+    src: /opt/spring3hibernate/target/spring3hibernate.war
+    dest: /opt/tomcat/apache-tomcat-7.0.108/webapps/
+    remote_src: yes
+  become: yes
+  tags: deploy
+
+- name: Start Tomcat
+  shell: nohup /opt/tomcat/apache-tomcat-7.0.108/bin/startup.sh &
+  args:
+    executable: /bin/bash
+  become: yes
+  tags: deploy
