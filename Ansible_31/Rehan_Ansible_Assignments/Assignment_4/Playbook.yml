@@ -1,7 +1,0 @@
----
-- name: Apply system manager role
-  hosts: web
-  become: yes
-  roles:
-    - system_manager
-

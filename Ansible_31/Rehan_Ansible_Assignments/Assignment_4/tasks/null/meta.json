@@ -1,7 +1,0 @@
-{
-  "task_name": "backup",
-  "script_path": "/home/ubuntu/TaskManager/scripts/backup.sh",
-  "task_type": "manual",
-  "schedule": "",
-  "notification_email": "rehan.ali9325@gmail.com"
-}
