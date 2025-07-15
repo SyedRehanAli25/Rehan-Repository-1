@@ -1,0 +1,100 @@
+  515  sudo chown -R jenkins:jenkins /var/lib/jenkins/jobs/day1
+  516  sudo systemctl restart jenkins
+  517  mv /var/lib/jenkins/jobs/OldJobName /var/lib/jenkins/jobs/day1/jobs/
+  518  mvn -v
+  519  ls -l /var/lib/jenkins/jobs/DT.day1
+  520  sudo mkdir -p /var/lib/jenkins/jobs/DT.day1/jobs
+  521  sudo mv /var/lib/jenkins/jobs/DT.JobMonitor /var/lib/jenkins/jobs/DT.day1/jobs/
+  522  sudo systemctl restart jenkins
+  523  ls /var/lib/jenkins/jobs
+  524  sudo find /var/lib/jenkins/jobs -name config.xml | grep -i jobmonitor
+  525  sudo mkdir -p /var/lib/jenkins/jobs/DT.day1/jobs
+  526  sudo mv /var/lib/jenkins/jobs/day1/jobs/DT.JobMonitor /var/lib/jenkins/jobs/DT.day1/jobs/
+  527  sudo systemctl restart jenkins
+  528  sudo tail -n 100 /var/log/jenkins/jenkins.log
+  529  sudo journalctl -u jenkins -n 100 --no-pager
+  530  sudo journalctl -u jenkins -f
+  531  ping ec2-3-144-46-251.us-east-2.compute.amazonaws.com
+  532  sudo mkdir -p /var/lib/jenkins/jobs/DT.day1/jobs
+  533  sudo systemctl restart jenkins
+  534  sudo systemctl status jenkins
+  535  ip a
+  536  curl -u rehan-admin:110312cada15ae58ec3bb422dc3eb7ff94 http://3.144.46.251:8080/crumbIssuer/api/json
+  537  sudo systemctl restart jenkins
+  538  sudo journalctl -u jenkins -f
+  539  exit
+  540  curl http://172.31.8.202:8080
+  541  git clone https://github.com/adarshadshetty/BoardGame.git
+  542  cd BoardGame
+  543  ls
+  544  cd /var/lib/jenkins
+  545  cd Boardgames
+  546  cd Boardgame
+  547  cd DT.Boardgame
+  548  echo "========= Maven Build Started ========="
+  549  echo "Running on: $(hostname)"
+  550  echo "Build directory: $(pwd)"
+  551  echo "======================================="
+  552  # Ensure Maven is available
+  553  mvn --version || { echo "Maven is not installed or not in PATH"; exit 1; }
+  554  # Clean and install using Maven
+  555  mvn clean install
+  556  echo "========= Maven Build Finished ========="
+  557  cd /var/lib/jenkins/workspace/DT.Boardgame-CI
+  558  ls
+  559  mvn clean install
+  560  cd /var/lib/jenkins/workspace/DT.Boardgame-CI
+  561  sudo mvn clean install
+  562  mvn clean install
+  563  sudo chown -R jenkins:jenkins /var/lib/jenkins/workspace
+  564  cd /var/lib/jenkins/workspace/DT.Boardgame-CI
+  565  mvn clean install
+  566  sudo rm -rf /var/lib/jenkins/workspace/DT.Boardgame-CI/target
+  567  ls /var/lib/jenkins/workspace/DT.Boardgame-CI/target
+  568  cd /var/lib/jenkins/workspace/DT.Boardgame-CI
+  569  mvn clean install
+  570  sudo chown -R jenkins:jenkins /var/lib/jenkins/workspace
+  571  sudo rm -rf /var/lib/jenkins/workspace/DT.Boardgame-CI/target
+  572  sudo -u jenkins touch /var/lib/jenkins/workspace/DT.Boardgame-CI/testfile && rm /var/lib/jenkins/workspace/DT.Boardgame-CI/testfile
+  573  rm -f /var/lib/jenkins/workspace/DT.Boardgame-CI/testfile
+  574  ls -l /var/lib/jenkins/workspace/DT.Boardgame-CI/testfile
+  575  sudo -u jenkins rm -f /var/lib/jenkins/workspace/DT.Boardgame-CI/testfile
+  576  sudo -u jenkins mvn clean
+  577  nano Inventory.ini
+  578  ansible web -m ping
+  579  sudo nano /etc/ansible/hosts
+  580  # Step 1: Create Ansible config directory
+  581  sudo mkdir -p /etc/ansible
+  582  # Step 2: Create the inventory file
+  583  sudo nano /etc/ansible/hosts
+  584  ansible web -m ping
+  585  ssh -i ~/.ssh/my_ubuntu.pem ubuntu@172.31.36.83
+  586  exit
+  587  /Users/syedrehan/.ssh/my_ubuntu.pem
+  588  exit
+  589  /home/ubuntu/.ssh/my_ubuntu.pem
+  590  chmod 400 /home/ubuntu/.ssh/my_ubuntu.pem
+  591  ssh -i /home/ubuntu/.ssh/my_ubuntu.pem ubuntu@172.31.36.83
+  592  mkdir -p ~/ansible-assignment-1
+  593  cd ~/ansible-assignment-1
+  594  nano hosts.ini
+  595  ansible -i hosts.ini local -m ping
+  596  ansible -i hosts.ini local -m group -a "name=NinjaTeam state=present"
+  597  ansible -i hosts.ini local -m group -a "name=NinjaTeam state=present" --become
+  598  ansible -i hosts.ini local -m user -a "name=Rehan group=NinjaTeam create_home=yes shell=/bin/bash" -b
+  599  ansible -i hosts.ini local -m user -a "name=Harsh group=NinjaTeam create_home=yes shell=/bin/bash" -b
+  600  ansible -i hosts.ini local -m user -a "name=Prakash group=NinjaTeam create_home=yes shell=/bin/bash" -b
+  601  for user in Rehan Harsh Prakash; do   ansible -i hosts.ini local -m file -a "path=/home/$user mode=0750 group=NinjaTeam" -b; done
+  602  for user in Rehan Harsh Prakash; do   ansible -i hosts.ini local -m file -a "path=/home/$user/Team state=directory owner=$user group=NinjaTeam mode=0770" -b;   ansible -i hosts.ini local -m file -a "path=/home/$user/Ninja state=directory owner=$user group=NinjaTeam mode=0770" -b; done
+  603  ansible -i hosts.ini local -m user -a "name=Rehan shell=/bin/zsh" -b
+  604  openssl passwd -1 'Rehan@123'
+  605  ansible -i hosts.ini local -m user -a "name=Rehan password='$1$L7JUuW05$XegLwrxGziTOb5TB3ZVf0/'" -b
+  606  ansible -i hosts.ini local -m user -a "name=Harsh state=absent remove=yes" -b
+  607  ansible -i hosts.ini local -m group -a "name=NinjaTeam state=absent" -b
+  608  ansible -i hosts.ini local -a "cut -d: -f1 /etc/passwd"
+  609  ansible -i hosts.ini local -a "cut -d: -f1 /etc/group"
+  610  ansible -i hosts.ini local -m user -a "name=Rehan state=absent remove=yes" -b
+  611  ansible -i hosts.ini local -m user -a "name=Harsh state=absent remove=yes" -b
+  612  ansible -i hosts.ini local -m user -a "name=Prakash state=absent remove=yes" -b
+  613  ansible -i hosts.ini local -m group -a "name=NinjaTeam state=absent" -b
+  614  history | tail -n 100 > ~/ansible-assignment-1/commands.log

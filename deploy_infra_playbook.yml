@@ -1,0 +1,7 @@
+- name: Deploy Spring3HibernateApp on AWS infra
+  hosts: web
+  become: yes
+
+  roles:
+    - infra_setup_role
+

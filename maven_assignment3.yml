@@ -1,0 +1,9 @@
+# infra_setup_role/tasks/maven_assignment3.yml
+
+- name: Install Maven
+  apt:
+    name: maven
+    state: present
+    update_cache: yes
+  become: yes
+  tags: maven
