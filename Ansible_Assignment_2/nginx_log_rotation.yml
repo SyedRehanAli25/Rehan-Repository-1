@@ -1,0 +1,35 @@
+---
+- name: Install Nginx and configure log rotation
+  hosts: web
+  become: yes
+  serial: 1
+  tasks:
+    - name: Install Nginx
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+
+    - name: Ensure logrotate is installed
+      apt:
+        name: logrotate
+        state: present
+
+    - name: Configure logrotate for nginx
+      copy:
+        dest: /etc/logrotate.d/nginx
+        content: |
+          /var/log/nginx/*.log {
+              daily
+              missingok
+              rotate 7
+              compress
+              delaycompress
+              notifempty
+              create 0640 www-data adm
+              sharedscripts
+              size 1G
+              postrotate
+                  systemctl reload nginx > /dev/null 2>&1 || true
+              endscript
+          }

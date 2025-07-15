@@ -1,6 +1,7 @@
-# ✅ Ansible Assignment-5 — Kubernetes Role Installer (by Rehan - DevOps Titans)
 
-## 🎯 Objective
+#  Ansible Assignment-5 — Kubernetes Role Installer (by Rehan - DevOps Titans)
+
+##  Objective
 
 Create an OS-independent Ansible role to:
 - Install a specific version of Kubernetes
@@ -11,7 +12,7 @@ Create an OS-independent Ansible role to:
 
 ---
 
-## 📦 Role: `kube_installer`
+##  Role: `kube_installer`
 
 ### Features:
 - Installs Kubernetes components: `kubeadm`, `kubelet`, `kubectl`
@@ -22,7 +23,7 @@ Create an OS-independent Ansible role to:
 
 ---
 
-## 🖥️ Inventory
+## ️ Inventory
 
 **File:** `inventory.ini`
 
@@ -89,3 +90,23 @@ handlers/main.yml
 
 ansible-playbook -i inventory.ini playbook.yml
 
+=======
+# Ansible Assignment 1
+
+**Team Name:** DevOps Titans  
+**Team Members:** Rehan, Harsh, Prakash
+
+This assignment demonstrates the use of Ansible ad hoc commands to:
+- Manage users and groups
+- Set directory permissions
+- Create shared folders (`Team` and `Ninja`)
+- Change shell and password
+- <img width="1440" height="900" alt="image" src="https://github.com/user-attachments/assets/24a9b543-8a0c-4ba6-9ac7-5239926a7ef2" />
+
+- Delete users and groups
+- <img width="1440" height="900" alt="image" src="https://github.com/user-attachments/assets/b2bd1ac6-8ddb-4ff6-bcab-57038fa1f129" />
+
+- List system users and groups
+
+Controller and target were the same EC2 instance (`localhost` with `ansible_connection=local`).
+>>>>>>> a1dafcabc4473cd5bf575a56e1b2baa4bc8aa096
