@@ -1,0 +1,6 @@
+- name: Install Kubernetes on web servers
+  hosts: web          
+  become: true
+  roles:
+    - kube_installer
+

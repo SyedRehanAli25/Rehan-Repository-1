@@ -1,0 +1,8 @@
+- name: Install on Ubuntu (Debian family)
+  include_tasks: install_ubuntu.yml
+  when: ansible_os_family == "Debian"
+
+
+# - name: Install on CentOS (RedHat family)
+#   include_tasks: install_centos.yml
+#   when: ansible_os_family == "RedHat"
