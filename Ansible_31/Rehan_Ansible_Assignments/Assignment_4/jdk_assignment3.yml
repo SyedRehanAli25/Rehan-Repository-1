@@ -1,0 +1,9 @@
+# infra_setup_role/tasks/jdk_assignment3.yml
+
+- name: Install JDK 11
+  apt:
+    name: openjdk-11-jdk
+    state: present
+    update_cache: yes
+  become: yes
+  tags: jdk
