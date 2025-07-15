@@ -1,0 +1,32 @@
+---
+- name: Install required software
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+  loop: "{{ software_list }}"
+
+- name: Create users
+  user:
+    name: "{{ item.name }}"
+    groups: "{{ item.groups }}"
+    state: present
+    shell: /bin/bash
+  loop: "{{ users }}"
+
+- name: Create folders
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+  loop: "{{ folders }}"
+
+- name: Clone Git repositories
+  git:
+    repo: "{{ item.repo }}"
+    dest: "{{ item.dest }}"
+    version: HEAD
+  loop: "{{ git_repos }}"
+
