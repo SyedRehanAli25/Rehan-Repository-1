@@ -39,7 +39,7 @@ File: playbook.yml
   become: true
   roles:
     - kube_installer
-📂 Directory Structure
+ Directory Structure
 
 Ansible_Assignment-5/
 ├── inventory.ini
@@ -52,12 +52,12 @@ Ansible_Assignment-5/
         ├── tasks/
         ├── templates/
         └── vars/
-⚙️ Variables
+ Variables
 
 roles/kube_installer/defaults/main.yml
 
 kubernetes_version: "1.29.0"
-🧩 Jinja Template
+Jinja Template
 
 templates/kube_config.j2
 
@@ -90,7 +90,6 @@ handlers/main.yml
 
 ansible-playbook -i inventory.ini playbook.yml
 
-=======
 # Ansible Assignment 1
 
 **Team Name:** DevOps Titans  
