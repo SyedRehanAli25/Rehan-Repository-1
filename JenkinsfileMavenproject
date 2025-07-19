@@ -1,0 +1,85 @@
+pipeline {
+    agent any
+
+    parameters {
+        choice(
+            name: 'BUILD_TYPE',
+            choices: ['Development', 'Staging', 'Production'],
+            description: 'Pick the environment to build in'
+        )
+    }
+
+    tools {
+        maven 'LocalMaven'
+        jdk 'JDK'
+    }
+
+    environment {
+        REPO_URL = 'https://github.com/vaadin/addressbook.git'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                echo "Cloning repository from: ${env.REPO_URL}"
+                git "${env.REPO_URL}"
+            }
+        }
+
+        stage('Approval') {
+            steps {
+                script {
+                    input message: 'Shall we proceed?', ok: 'Proceed to Build'
+                }
+            }
+        }
+
+        stage('Compile') {
+            steps {
+                echo "Compiling project for: ${params.BUILD_TYPE}"
+                sh 'mvn compile'
+            }
+        }
+
+        stage('Parallel Steps') {
+            parallel {
+                stage('Test') {
+                    steps {
+                        echo "Running tests..."
+                        sh 'mvn test'
+                    }
+                }
+
+                stage('Code Review') {
+                    steps {
+                        echo "Running static code analysis..."
+                        sh 'mvn findbugs:findbugs'
+                    }
+                }
+
+                stage('Package') {
+                    when {
+                        expression { return params.BUILD_TYPE != 'Production' }
+                    }
+                    steps {
+                        echo "Packaging as environment is NOT Production..."
+                        sh 'mvn package'
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Build succeeded for ${params.BUILD_TYPE} environment."
+        }
+        failure {
+            echo "Build Failed for ${BUILD_TYPE} environment."
+        }
+        always {
+            echo "Cleaning workspace"
+            cleanWs()
+        }
+    }
+}
