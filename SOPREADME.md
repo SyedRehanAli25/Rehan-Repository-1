@@ -32,14 +32,14 @@
 9. [Troubleshooting Tips](#troubleshooting-tips)
 10. [Contact Information](#contact-information)
 11. [References](#references)
-## 1. Introduction
+## Introduction
 
 This SOP defines the standardized process for creating, managing, and maintaining Python virtual environments on Linux and Windows systems.
 Python virtual environments (`venv`) allow developers to isolate project dependencies, ensuring consistency and preventing conflicts between different projects and system-wide packages.
 
 ---
 
-## 2. Purpose
+## Purpose
 
 The purpose of this SOP is to:
 
