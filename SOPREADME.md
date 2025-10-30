@@ -1,293 +1,262 @@
 # **Standard Operating Procedure (SOP)**
 
-**Title:** Managing Python Virtual Environments on Linux and Windows Systems
+## **Title: Managing Python Dependencies Using `requirements.txt`**
 
-| Author             | Created on | Version | Last updated by | Last Edited On | Level    | Reviewer |
-| ------------------ | ---------- | ------- | --------------- | -------------- | -------- | -------- |
-| **Syed Rehan Ali** | 2025-10-29 | 1.1     | Syed Rehan Ali  | 2025-10-29     | Internal | Reviewer |
+| **Author**     | **Created on** | **Version** | **Last Updated by** | **Last Edited On** | **Level** | **Reviewer** |
+| -------------- | -------------- | ----------- | ------------------- | ------------------ | --------- | ------------ |
+| Liyakath Ali | 2025-10-30     | 1.0         | Syed Rehan Ali      | 2025-10-30         | Internal  | Reviewer     |
+
+---
+
+## **Overview**
+
+This document defines the **standardized process** for managing Python dependencies using the `requirements.txt` file across different environments.
+The `requirements.txt` file ensures all developers, testers, and deployment systems install **identical packages and versions**, maintaining environment consistency across development, staging, and production.
 
 ---
 
 ## **Table of Contents**
 
-# Table of Contents
+* [Introduction](#introduction)
+* [Purpose](#purpose)
+* [Scope](#scope)
+* [Prerequisites](#prerequisites)
+* [Procedure](#procedure)
 
-1. [Introduction](#introduction)
-2. [Purpose](#purpose)
-3. [Scope](#scope)
-4. [Prerequisites](#prerequisites)
-5. [Procedure](#procedure)
-   - [System Compatibility Check](#system-compatibility-check)
-   - [Installing Dependencies](#installing-dependencies)
-   - [Installing Python via Package Manager](#installing-python-via-package-manager)
-   5.4 [Installing Python via Tarball](#installing-python-via-tarball)
-   5.5 [Creating a Python Virtual Environment (Linux)](#creating-a-python-virtual-environment-linux)
-   5.6 [Activating and Deactivating Virtual Environments (Linux)](#activating-and-deactivating-virtual-environments-linux)
-   5.7 [Managing Dependencies with requirements.txt](#managing-dependencies-with-requirementstxt)
-   5.8 [Removing a Virtual Environment (Linux)](#removing-a-virtual-environment-linux)
-   5.9 [Creating and Managing Virtual Environments on Windows](#creating-and-managing-virtual-environments-on-windows)
-6. [Verifying Installation](#verifying-installation)
-7. [Upgrading Python](#upgrading-python)
-8. [Best Practices](#best-practices)
-9. [Troubleshooting Tips](#troubleshooting-tips)
-10. [Contact Information](#contact-information)
-11. [References](#references)
-## Introduction
-
-This SOP defines the standardized process for creating, managing, and maintaining Python virtual environments on Linux and Windows systems.
-Python virtual environments (`venv`) allow developers to isolate project dependencies, ensuring consistency and preventing conflicts between different projects and system-wide packages.
+  * [Step 1: Check Existing Environment](#step-1-check-existing-environment)
+  * [Step 2: Create a Virtual Environment](#step-2-create-a-virtual-environment)
+  * [Step 3: Install Dependencies](#step-3-install-dependencies)
+  * [Step 4: Freeze Dependencies to requirements.txt](#step-4-freeze-dependencies-to-requirementstxt)
+  * [Step 5: Install Dependencies from requirements.txt](#step-5-install-dependencies-from-requirementstxt)
+  * [Step 6: Updating Dependencies](#step-6-updating-dependencies)
+  * [Step 7: Removing Unused Packages](#step-7-removing-unused-packages)
+* [Best Practices](#best-practices)
+* [Troubleshooting](#troubleshooting)
+* [Contact Information](#contact-information)
+* [References](#references)
 
 ---
 
-## Purpose
+## **Introduction**
+
+Python projects often depend on multiple third-party libraries. Managing these dependencies manually can lead to version conflicts and deployment failures.
+The `requirements.txt` file standardizes the dependency installation process using **pip**, ensuring that everyone uses the same versions of libraries.
+
+A typical `requirements.txt` file looks like:
+
+```
+flask==3.0.0
+requests==2.31.0
+pandas==2.2.3
+numpy>=1.26.0
+```
+
+---
+
+## **Purpose**
 
 The purpose of this SOP is to:
 
-* Establish a consistent process for managing Python environments across Linux and Windows.
-* Enable isolation of dependencies per project.
-* Enhance portability, reproducibility, and maintainability in development and production setups.
+* Define a **standard approach** for managing Python dependencies.
+* Ensure **environment consistency** across development, testing, and production.
+* Enable **easy replication** of environments on new systems.
+* Minimize issues caused by dependency mismatches.
 
 ---
 
-## **3. Scope**
+## **Scope**
 
 This SOP applies to:
 
-* Developers, DevOps engineers, and system administrators managing Python-based projects on Linux or Windows.
-* Any environment where multiple projects require different Python package versions.
+* Developers and DevOps engineers managing Python-based applications.
+* Any system using Python with external dependencies.
+* CI/CD environments where reproducibility is critical.
 
 ---
 
-## **4. Prerequisites**
+## **Prerequisites**
 
-Before proceeding:
+Before proceeding, ensure:
 
-* Ensure **Python 3.6+** is installed with **pip**.
-* Verify **internet connectivity**.
-* Confirm appropriate **sudo or administrator privileges**.
+* Python 3.6 or above is installed.
+* `pip` is available.
+* The virtual environment (`venv`) is activated (recommended).
+* Internet access is available to download packages.
 
-**Check Python Installation**
-
-**Linux**
+Check versions:
 
 ```bash
 python3 --version
 pip3 --version
 ```
 
-**Windows (PowerShell)**
-
-```powershell
-python --version
-pip --version
-```
-
-If Python is missing:
-
-* **Linux:**
-
-  ```bash
-  sudo apt install python3 python3-pip python3-venv -y
-  ```
-* **Windows:** Download from [https://www.python.org/downloads/](https://www.python.org/downloads/) and check **“Add Python to PATH”** during installation.
-
----
-
-## **5. Procedure**
-
-### **5.1 System Compatibility Check**
-
-**Linux**
+If pip is missing:
 
 ```bash
-if [ -f /etc/os-release ]; then
-  . /etc/os-release
-  echo "Detected OS: $NAME"
-fi
-python3 --version
-```
-
-**Windows (PowerShell)**
-
-```powershell
-[System.Environment]::OSVersion.Version
-python --version
+sudo apt install python3-pip -y
 ```
 
 ---
 
-### **5.2 Installing Required Packages**
+## **Procedure**
 
-**Linux**
+### **Step 1: Check Existing Environment**
+
+List all installed packages:
 
 ```bash
-sudo apt-get update -y
-sudo apt-get install -y python3-venv python3-pip
-python3 -m pip install --upgrade pip
-```
-
-**Windows (PowerShell)**
-
-```powershell
-python -m pip install --upgrade pip
+pip list
 ```
 
 ---
 
-### **5.3 Creating a Python Virtual Environment (Linux)**
+### **Step 2: Create a Virtual Environment**
+
+Creating isolated environments ensures that dependencies do not interfere with system-wide Python installations.
 
 ```bash
-mkdir ~/my_project && cd ~/my_project
 python3 -m venv venv
+source venv/bin/activate   # Linux/macOS
+# OR
+venv\Scripts\activate      # Windows
 ```
 
 ---
 
-### **5.4 Activating and Deactivating Virtual Environments (Linux)**
+### **Step 3: Install Dependencies**
 
-**Activate**
-
-```bash
-source venv/bin/activate
-```
-
-**Deactivate**
+Install any package required for your project:
 
 ```bash
-deactivate
+pip install flask requests pandas
 ```
 
-**Check Python path**
+Verify:
 
 ```bash
-which python
+pip list
 ```
-
-Expected output:
-`/home/user/my_project/venv/bin/python`
 
 ---
 
-### **5.5 Managing Dependencies with `requirements.txt`**
+### **Step 4: Freeze Dependencies to `requirements.txt`**
 
-**Export installed packages**
+This saves all currently installed packages and their versions:
 
 ```bash
 pip freeze > requirements.txt
 ```
 
-**Install from file**
+Your file may look like:
+
+```
+flask==3.0.0
+requests==2.31.0
+pandas==2.2.3
+numpy==1.26.2
+```
+
+---
+
+### **Step 5: Install Dependencies from `requirements.txt`**
+
+To replicate the environment on another system:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-**Upgrade packages**
+This installs **exact versions** listed in the file.
+
+---
+
+### **Step 6: Updating Dependencies**
+
+To check outdated packages:
 
 ```bash
 pip list --outdated
+```
+
+Update a specific package:
+
+```bash
 pip install --upgrade <package_name>
 ```
 
----
-
-### **5.6 Removing a Virtual Environment (Linux)**
+Update all and refresh the requirements file:
 
 ```bash
-deactivate  # if active
-rm -rf venv/
-```
-
----
-
-### **5.7 Creating and Managing Virtual Environments on Windows**
-
-**Create Project Directory**
-
-```powershell
-mkdir C:\Projects\my_project
-cd C:\Projects\my_project
-```
-
-**Create Virtual Environment**
-
-```powershell
-python -m venv venv
-```
-
-**Activate Environment**
-
-```powershell
-venv\Scripts\activate
-```
-
-**Check Python Path**
-
-```powershell
-where python
-```
-
-Expected output:
-`C:\Projects\my_project\venv\Scripts\python.exe`
-
-**Manage Dependencies**
-
-```powershell
-pip install -r requirements.txt
 pip freeze > requirements.txt
 ```
 
-**Deactivate**
+---
 
-```powershell
-deactivate
+### **Step 7: Removing Unused Packages**
+
+If some packages are no longer needed:
+
+1. Uninstall manually:
+
+   ```bash
+   pip uninstall <package_name>
+   ```
+2. Re-freeze to update the requirements file:
+
+   ```bash
+   pip freeze > requirements.txt
+   ```
+
+---
+
+## **Best Practices**
+
+-Maintain one `requirements.txt` file per project.
+
+-Always activate the virtual environment before installation.
+
+-Use exact versions (`==`) for production reliability.
+
+-Use version ranges (`>=`) only in development environments.
+
+-Commit `requirements.txt` to version control (Git).
+
+-Never commit your `venv/` directory.
+
+-Regularly audit dependencies with:
+
+```bash
+pip check
+pip list --outdated
 ```
 
-**Remove Environment**
+---
 
-```powershell
-Remove-Item -Recurse -Force venv
-```
+## **Troubleshooting**
+
+| **Issue**                | **Possible Cause**         | **Solution**                                   |
+| ------------------------ | -------------------------- | ---------------------------------------------- |
+| `pip: command not found` | pip not installed          | Install pip via `sudo apt install python3-pip` |
+| `ModuleNotFoundError`    | Missing package            | Run `pip install -r requirements.txt`          |
+| Version conflicts        | Different package versions | Use a fresh virtual environment                |
+| Permission denied        | System Python usage        | Use `--user` flag or virtual environment       |
+| SSL errors               | Missing certificates       | Run `pip install --upgrade certifi`            |
 
 ---
 
-## **6. Best Practices**
+## **Contact Information**
 
-* Maintain **separate environments per project**.
-* Always **activate** the virtual environment before installing packages.
-* Track dependencies in a **`requirements.txt`** file.
-* Exclude the `venv/` directory in **`.gitignore`**.
-* Regularly update **pip** and dependencies.
-* For production, consider **`pipenv`** or **`poetry`** for dependency management.
+| **Name**       | **Email Address**                                                                     |
+| -------------- | ------------------------------------------------------------------------------------- |
+| Syed Rehan Ali | [syed.rehan.ali.snaatak@mygurukulam.co](mailto:syed.rehan.ali.snaatak@mygurukulam.co) |
 
 ---
 
-## **7. Troubleshooting Tips**
+## **References**
 
-| Issue                               | Cause                          | Solution                                         |
-| ----------------------------------- | ------------------------------ | ------------------------------------------------ |
-| ModuleNotFoundError                 | Package not installed in venv  | Activate correct venv and reinstall              |
-| `source: command not found` (Linux) | Using non-Bash shell           | Use `. venv/bin/activate`                        |
-| `pip not recognized` (Windows)      | Python not added to PATH       | Reinstall Python and enable “Add Python to PATH” |
-| Build errors                        | Missing compilers or headers   | `sudo apt install build-essential python3-dev`   |
-| Wrong Python version used           | System Python takes precedence | Check using `which python` or `where python`     |
-
----
-
-## **8. Contact Information**
-
-| Name               | Email Address                                                                         |
-| ------------------ | ------------------------------------------------------------------------------------- |
-| **Syed Rehan Ali** | [syed.rehan.ali.snaatak@mygurukulam.co](mailto:syed.rehan.ali.snaatak@mygurukulam.co) |
-
----
-
-## **9. References**
-
-| Topic                     | Link                                                                                         | Description                                   |
-| ------------------------- | -------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| Python venv Documentation | [https://docs.python.org/3/library/venv.html](https://docs.python.org/3/library/venv.html)   | Official Python venv guide                    |
-| PIP User Guide            | [https://pip.pypa.io/en/stable/user_guide/](https://pip.pypa.io/en/stable/user_guide/)       | Managing Python packages with pip             |
-| Python Packaging Guide    | [https://packaging.python.org/](https://packaging.python.org/)                               | Official guide for packaging and dependencies |
-| Python for Windows        | [https://docs.python.org/3/using/windows.html](https://docs.python.org/3/using/windows.html) | Instructions for using Python on Windows      |
-| Ubuntu Python Docs        | [https://wiki.ubuntu.com/Python](https://wiki.ubuntu.com/Python)                             | Ubuntu’s official Python management guide     |
+| **Topic**              | **Link**                                                                                                                               | **Description**                          |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| pip User Guide         | [https://pip.pypa.io/en/stable/user_guide/](https://pip.pypa.io/en/stable/user_guide/)                                                 | Official pip usage documentation         |
+| Python Packaging Guide | [https://packaging.python.org/en/latest/](https://packaging.python.org/en/latest/)                                                     | Best practices for dependency management |
+| requirements.txt       | [https://pip.pypa.io/en/stable/reference/requirements-file-format/](https://pip.pypa.io/en/stable/reference/requirements-file-format/) | Official reference for requirements.txt  |
+| Virtual Environments   | [https://docs.python.org/3/library/venv.html](https://docs.python.org/3/library/venv.html)                                             | Official Python venv documentation       |
