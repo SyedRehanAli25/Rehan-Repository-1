@@ -1,262 +1,225 @@
-# **Standard Operating Procedure (SOP)**
 
-## **Title: Managing Python Dependencies Using `requirements.txt`**
-
-| **Author**     | **Created on** | **Version** | **Last Updated by** | **Last Edited On** | **Level** | **Reviewer** |
-| -------------- | -------------- | ----------- | ------------------- | ------------------ | --------- | ------------ |
-| Liyakath Ali | 2025-10-30     | 1.0         | Syed Rehan Ali      | 2025-10-30         | Internal  | Reviewer     |
+# Overview — Ansible Role CD Workflow Documentation
 
 ---
 
-## **Overview**
-
-This document defines the **standardized process** for managing Python dependencies using the `requirements.txt` file across different environments.
-The `requirements.txt` file ensures all developers, testers, and deployment systems install **identical packages and versions**, maintaining environment consistency across development, staging, and production.
-
----
-
-## **Table of Contents**
-
-* [Introduction](#introduction)
-* [Purpose](#purpose)
-* [Scope](#scope)
-* [Prerequisites](#prerequisites)
-* [Procedure](#procedure)
-
-  * [Step 1: Check Existing Environment](#step-1-check-existing-environment)
-  * [Step 2: Create a Virtual Environment](#step-2-create-a-virtual-environment)
-  * [Step 3: Install Dependencies](#step-3-install-dependencies)
-  * [Step 4: Freeze Dependencies to requirements.txt](#step-4-freeze-dependencies-to-requirementstxt)
-  * [Step 5: Install Dependencies from requirements.txt](#step-5-install-dependencies-from-requirementstxt)
-  * [Step 6: Updating Dependencies](#step-6-updating-dependencies)
-  * [Step 7: Removing Unused Packages](#step-7-removing-unused-packages)
-* [Best Practices](#best-practices)
-* [Troubleshooting](#troubleshooting)
-* [Contact Information](#contact-information)
-* [References](#references)
+| **Author** | **Created on** | **Version** | **Last updated by** | **Last Edited On** | **Level** | **Reviewer** |
+|-------------|----------------|--------------|---------------------|--------------------|------------|---------------|
+| Liyakath | 2025-10-31 | 1.0 | Liyakath | 2025-10-31 | Internal Review | Team |
 
 ---
 
-## **Introduction**
+## Table of Contents
+- [What](#what)
+- [Why](#why)
+- [Workflow Overview](#workflow-overview)
+- [Task Definition](#task-definition)
+- [Subtask — Role Structure](#subtask--role-structure)
+- [Activity — Continuous Deployment (CD)](#activity--continuous-deployment-cd)
+- [Acceptance Criteria](#acceptance-criteria)
+- [Best Practices](#best-practices)
+- [FAQs](#faqs)
+- [Contact Information](#contact-information)
+- [References](#references)
 
-Python projects often depend on multiple third-party libraries. Managing these dependencies manually can lead to version conflicts and deployment failures.
-The `requirements.txt` file standardizes the dependency installation process using **pip**, ensuring that everyone uses the same versions of libraries.
+---
 
-A typical `requirements.txt` file looks like:
+## What
+
+The **Ansible Role Continuous Deployment (CD) Workflow** defines the process of automating, validating, and deploying configuration management components using **Ansible roles**.  
+
+This workflow standardizes how automation tasks are developed, tested, and deployed through continuous integration and deployment pipelines, ensuring consistent and reliable infrastructure provisioning.
+
+---
+
+## Why
+
+Implementing a structured **Ansible Role CD Workflow** ensures reliability, scalability, and traceability of infrastructure changes.  
+
+It helps teams manage automation in a modular way, enabling faster deployments and reduced configuration drift across environments.
+
+### Key Benefits
+
+| **Benefit** | **Description** |
+|--------------|------------------|
+| **Consistency** | Enforces standardized role and task structures. |
+| **Automation** | Integrates with CI/CD tools for deployment automation. |
+| **Reusability** | Encourages reusable roles for common infrastructure tasks. |
+| **Quality Assurance** | Ensures roles are tested and validated before release. |
+| **Traceability** | Tracks deployment changes and test results automatically. |
+
+---
+
+## Workflow Overview
+
+The workflow defines a structured sequence from **development to deployment** for Ansible roles.
 
 ```
-flask==3.0.0
-requests==2.31.0
-pandas==2.2.3
-numpy>=1.26.0
-```
+
+Task (Ansible Implementation)
+├── Subtask (Role Creation)
+│     ├── Activity (Testing)
+│     ├── Activity (Validation)
+│     └── Activity (CD Deployment)
+└── Acceptance Criteria (Validation and Completion)
+
+````
+
+### Workflow Phases
+
+| **Phase** | **Description** |
+|------------|------------------|
+| **Planning** | Define automation requirements and identify reusable roles. |
+| **Development** | Create or update roles, playbooks, and inventories. |
+| **Testing** | Run syntax checks, linting, and test environments (e.g., Molecule). |
+| **Deployment (CD)** | Deploy tested roles using CI/CD pipelines. |
+| **Verification** | Confirm deployments meet defined acceptance criteria. |
+| **Closure** | Document outputs and mark deployment as complete. |
 
 ---
 
-## **Purpose**
+## Task Definition
 
-The purpose of this SOP is to:
+### Objective
+A **Task** represents a unit of automation work — typically provisioning, configuration, or orchestration of a service or environment.
 
-* Define a **standard approach** for managing Python dependencies.
-* Ensure **environment consistency** across development, testing, and production.
-* Enable **easy replication** of environments on new systems.
-* Minimize issues caused by dependency mismatches.
+### Key Components
+- **Playbooks** — Define automation logic and role execution.
+- **Variables** — Define environment-specific configurations.
+- **Inventory Files** — Maintain target host details.
+- **Handlers** — Trigger specific events such as service restarts.
 
----
-
-## **Scope**
-
-This SOP applies to:
-
-* Developers and DevOps engineers managing Python-based applications.
-* Any system using Python with external dependencies.
-* CI/CD environments where reproducibility is critical.
-
----
-
-## **Prerequisites**
-
-Before proceeding, ensure:
-
-* Python 3.6 or above is installed.
-* `pip` is available.
-* The virtual environment (`venv`) is activated (recommended).
-* Internet access is available to download packages.
-
-Check versions:
-
-```bash
-python3 --version
-pip3 --version
-```
-
-If pip is missing:
-
-```bash
-sudo apt install python3-pip -y
-```
+### Example Task
+```yaml
+- name: Configure NGINX Web Server
+  hosts: webservers
+  become: yes
+  roles:
+    - nginx_role
+````
 
 ---
 
-## **Procedure**
+## Subtask — Role Structure
 
-### **Step 1: Check Existing Environment**
+Each **Role** represents a modular automation component responsible for a specific functionality. Roles help in organizing reusable configurations and ensuring maintainability.
 
-List all installed packages:
+### Role Directory Structure
 
-```bash
-pip list
 ```
+nginx_role/
+├── defaults/
+│   └── main.yml
+├── files/
+│   └── index.html
+├── handlers/
+│   └── main.yml
+├── meta/
+│   └── main.yml
+├── tasks/
+│   └── main.yml
+├── templates/
+│   └── nginx.conf.j2
+├── tests/
+│   └── test.yml
+└── vars/
+    └── main.yml
+```
+
+### Role Development Steps
+
+1. Define role purpose and variables.
+2. Create **tasks** and **handlers** for configuration management.
+3. Add **templates** and **files** for configuration artifacts.
+4. Include **tests** for validation.
+5. Version control with Git (e.g., `v1.0`, `v1.1`).
 
 ---
 
-### **Step 2: Create a Virtual Environment**
+## Activity — Continuous Deployment (CD)
 
-Creating isolated environments ensures that dependencies do not interfere with system-wide Python installations.
+The **CD activity** automates deployment of Ansible roles through a pipeline integrated with CI/CD tools such as Jenkins, GitLab CI, or GitHub Actions.
 
-```bash
-python3 -m venv venv
-source venv/bin/activate   # Linux/macOS
-# OR
-venv\Scripts\activate      # Windows
-```
+### CD Workflow Steps
 
----
+1. **Code Commit** — Push Ansible changes to the repository.
+2. **Lint & Syntax Validation** — Run `ansible-lint` and `yamllint`.
+3. **Test Execution** — Validate roles using **Molecule** or **Testinfra**.
+4. **Build Pipeline** — CI/CD pipeline triggers automated deployment.
+5. **Deploy to Environment** — Apply playbooks on target hosts (staging, production).
+6. **Post-Deployment Verification** — Run tests or health checks to validate deployment success.
+7. **Notification** — Inform team of successful or failed deployment.
 
-### **Step 3: Install Dependencies**
+### Common Tools
 
-Install any package required for your project:
-
-```bash
-pip install flask requests pandas
-```
-
-Verify:
-
-```bash
-pip list
-```
+| **Tool**                                 | **Purpose**                                    |
+| ---------------------------------------- | ---------------------------------------------- |
+| **Ansible Tower / AWX**                  | Centralized automation control and scheduling. |
+| **Jenkins / GitHub Actions / GitLab CI** | CI/CD orchestration.                           |
+| **Molecule**                             | Role testing framework.                        |
+| **Yamllint & Ansible-lint**              | Code quality validation.                       |
 
 ---
 
-### **Step 4: Freeze Dependencies to `requirements.txt`**
+## Acceptance Criteria
 
-This saves all currently installed packages and their versions:
+Each automation role and CD process must meet specific **acceptance criteria** before being marked complete.
 
-```bash
-pip freeze > requirements.txt
-```
-
-Your file may look like:
-
-```
-flask==3.0.0
-requests==2.31.0
-pandas==2.2.3
-numpy==1.26.2
-```
+| **Criterion**                | **Description**                                          |
+| ---------------------------- | -------------------------------------------------------- |
+| **Code Validation Passed**   | No lint or syntax errors found.                          |
+| **Role Tested Successfully** | Molecule or Testinfra tests executed without failure.    |
+| **Deployment Verified**      | Role executed correctly on the target environment.       |
+| **Version Tagged**           | Role version tagged in Git for traceability.             |
+| **Documentation Updated**    | Role README and changelog updated.                       |
+| **Rollback Tested**          | Rollback process verified for recovery scenarios.        |
+| **Approval Received**        | Deployment confirmed by automation or environment owner. |
 
 ---
 
-### **Step 5: Install Dependencies from `requirements.txt`**
+## Best Practices
 
-To replicate the environment on another system:
-
-```bash
-pip install -r requirements.txt
-```
-
-This installs **exact versions** listed in the file.
-
----
-
-### **Step 6: Updating Dependencies**
-
-To check outdated packages:
-
-```bash
-pip list --outdated
-```
-
-Update a specific package:
-
-```bash
-pip install --upgrade <package_name>
-```
-
-Update all and refresh the requirements file:
-
-```bash
-pip freeze > requirements.txt
-```
+1. **Keep Roles Modular** — One role should handle a single responsibility.
+2. **Use Variables Wisely** — Parameterize configurations for flexibility.
+3. **Implement Idempotency** — Ensure tasks don’t cause unintended changes.
+4. **Enforce Version Control** — Tag role releases for consistency.
+5. **Use Molecule for Testing** — Automate validation for every role update.
+6. **Integrate Security Scanning** — Validate credentials, secrets, and permissions.
+7. **Automate Documentation Updates** — Sync README and changelog updates with deployments.
 
 ---
 
-### **Step 7: Removing Unused Packages**
+## FAQs
 
-If some packages are no longer needed:
+**1. What is the purpose of separating roles in Ansible?**
+To make automation reusable, modular, and easy to maintain across multiple environments.
 
-1. Uninstall manually:
+**2. How can I test roles locally before deploying?**
+Use **Molecule** with Docker or Vagrant to simulate environments.
 
-   ```bash
-   pip uninstall <package_name>
-   ```
-2. Re-freeze to update the requirements file:
+**3. How does CI/CD fit into Ansible automation?**
+It automates testing and deployment of roles after code commits.
 
-   ```bash
-   pip freeze > requirements.txt
-   ```
-
----
-
-## **Best Practices**
-
--Maintain one `requirements.txt` file per project.
-
--Always activate the virtual environment before installation.
-
--Use exact versions (`==`) for production reliability.
-
--Use version ranges (`>=`) only in development environments.
-
--Commit `requirements.txt` to version control (Git).
-
--Never commit your `venv/` directory.
-
--Regularly audit dependencies with:
-
-```bash
-pip check
-pip list --outdated
-```
+**4. What happens if deployment fails?**
+Rollback scripts or Ansible handlers restore the previous working state.
 
 ---
 
-## **Troubleshooting**
+## Contact Information
 
-| **Issue**                | **Possible Cause**         | **Solution**                                   |
-| ------------------------ | -------------------------- | ---------------------------------------------- |
-| `pip: command not found` | pip not installed          | Install pip via `sudo apt install python3-pip` |
-| `ModuleNotFoundError`    | Missing package            | Run `pip install -r requirements.txt`          |
-| Version conflicts        | Different package versions | Use a fresh virtual environment                |
-| Permission denied        | System Python usage        | Use `--user` flag or virtual environment       |
-| SSL errors               | Missing certificates       | Run `pip install --upgrade certifi`            |
+| **Name** | **Role**        | **Email**                                                                             |
+| -------- | --------------- | ------------------------------------------------------------------------------------- |
+| Liyakath Ali  | DevOps Engineer | [liyakath.ali.snaatak@mygurukulam.co](mailto:liyakath.ali.snaatak@mygurukulam.co) |
 
 ---
 
-## **Contact Information**
+## References
 
-| **Name**       | **Email Address**                                                                     |
-| -------------- | ------------------------------------------------------------------------------------- |
-| Syed Rehan Ali | [syed.rehan.ali.snaatak@mygurukulam.co](mailto:syed.rehan.ali.snaatak@mygurukulam.co) |
+| **Reference**          | **Link**                                                                                                                                                             | **Description**                               |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| Ansible Documentation  | [https://docs.ansible.com/](https://docs.ansible.com/)                                                                                                               | Official Ansible user guide                   |
+| Ansible Best Practices | [https://docs.ansible.com/ansible/latest/user_guide/playbooks_best_practices.html](https://docs.ansible.com/ansible/latest/user_guide/playbooks_best_practices.html) | Recommended project structure and conventions |
+| Molecule Testing       | [https://molecule.readthedocs.io/](https://molecule.readthedocs.io/)                                                                                                 | Framework for Ansible role testing            |
+| Jenkins Pipelines      | [https://www.jenkins.io/doc/](https://www.jenkins.io/doc/)                                                                                                           | CI/CD pipeline automation reference           |
+| GitHub Actions         | [https://docs.github.com/actions](https://docs.github.com/actions)                                                                                                   | CI/CD workflow configuration reference        |
 
----
-
-## **References**
-
-| **Topic**              | **Link**                                                                                                                               | **Description**                          |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
-| pip User Guide         | [https://pip.pypa.io/en/stable/user_guide/](https://pip.pypa.io/en/stable/user_guide/)                                                 | Official pip usage documentation         |
-| Python Packaging Guide | [https://packaging.python.org/en/latest/](https://packaging.python.org/en/latest/)                                                     | Best practices for dependency management |
-| requirements.txt       | [https://pip.pypa.io/en/stable/reference/requirements-file-format/](https://pip.pypa.io/en/stable/reference/requirements-file-format/) | Official reference for requirements.txt  |
-| Virtual Environments   | [https://docs.python.org/3/library/venv.html](https://docs.python.org/3/library/venv.html)                                             | Official Python venv documentation       |
