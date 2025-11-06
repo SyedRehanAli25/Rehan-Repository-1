@@ -1,225 +1,260 @@
+# Standard Operating Procedure (SOP) for Migrate 
 
-# Overview — Ansible Role CD Workflow Documentation
+**Title:** Managing Database Schema Migrations with migrate
 
----
-
-| **Author** | **Created on** | **Version** | **Last updated by** | **Last Edited On** | **Level** | **Reviewer** |
-|-------------|----------------|--------------|---------------------|--------------------|------------|---------------|
-| Liyakath | 2025-10-31 | 1.0 | Liyakath | 2025-10-31 | Internal Review | Team |
-
----
-
-## Table of Contents
-- [What](#what)
-- [Why](#why)
-- [Workflow Overview](#workflow-overview)
-- [Task Definition](#task-definition)
-- [Subtask — Role Structure](#subtask--role-structure)
-- [Activity — Continuous Deployment (CD)](#activity--continuous-deployment-cd)
-- [Acceptance Criteria](#acceptance-criteria)
-- [Best Practices](#best-practices)
-- [FAQs](#faqs)
-- [Contact Information](#contact-information)
-- [References](#references)
+| Author | Created On | Version | Last Updated By | Last Edited On | Level | Reviewer |
+|--------|------------|---------|-----------------|----------------|--------|----------|
+| Asma Badr Khan | 2025-10-31 | 1.0 | Asma Badr Khan | 2025-10-31 | Internal Review | Team |
 
 ---
 
-## What
+## **Table of Contents**
 
-The **Ansible Role Continuous Deployment (CD) Workflow** defines the process of automating, validating, and deploying configuration management components using **Ansible roles**.  
-
-This workflow standardizes how automation tasks are developed, tested, and deployed through continuous integration and deployment pipelines, ensuring consistent and reliable infrastructure provisioning.
-
----
-
-## Why
-
-Implementing a structured **Ansible Role CD Workflow** ensures reliability, scalability, and traceability of infrastructure changes.  
-
-It helps teams manage automation in a modular way, enabling faster deployments and reduced configuration drift across environments.
-
-### Key Benefits
-
-| **Benefit** | **Description** |
-|--------------|------------------|
-| **Consistency** | Enforces standardized role and task structures. |
-| **Automation** | Integrates with CI/CD tools for deployment automation. |
-| **Reusability** | Encourages reusable roles for common infrastructure tasks. |
-| **Quality Assurance** | Ensures roles are tested and validated before release. |
-| **Traceability** | Tracks deployment changes and test results automatically. |
+1. [Introduction](#introduction)
+2. [Prerequisites](#prerequisites)
+3. [Installation Guide](#installation-guide)
+   - [3.1 Install via Binary or Package](#31-install-via-binary-or-package)
+   - [3.2 Install via Go Toolchain](#32-install-via-go-toolchain)
+   - [3.3 Verify Installation](#33-verify-installation)
+4. [Procedure](#procedure)
+   - [4.1 Prepare Migrations Directory](#41-prepare-migrations-directory)
+   - [4.2 Create Migration Files](#42-create-migration-files)
+   - [4.3 Running Migrations (Up/Down/Steps)](#43-running-migrations-updownsteps)
+   - [4.4 Configure for CI/CD or Automation](#44-configure-for-cicd-or-automation)
+5. [Workflow Diagram](#workflow-diagram)
+6. [Best Practices](#best-practices)
+7. [Troubleshooting & Tips](#troubleshooting--tips)
+8. [Conclusion](#conclusion)
+9. [Contact Information](#contact-information)
+10. [References](#references)
 
 ---
 
-## Workflow Overview
+## **Introduction**
 
-The workflow defines a structured sequence from **development to deployment** for Ansible roles.
+The **Go Migrate Tool** (migrate) is a lightweight, open-source command-line utility designed to manage **database schema migrations** efficiently and safely. It enables developers and DevOps teams to version, apply, and roll back schema changes across multiple environments.  
 
-```
+This SOP outlines a standardized approach to **installing, configuring, and using the Migrate tool**, ensuring consistent, auditable, and reversible schema updates in production and development environments. The tool supports several databases like PostgreSQL, MySQL, SQLite, and MongoDB.
 
-Task (Ansible Implementation)
-├── Subtask (Role Creation)
-│     ├── Activity (Testing)
-│     ├── Activity (Validation)
-│     └── Activity (CD Deployment)
-└── Acceptance Criteria (Validation and Completion)
+---
 
+## **Prerequisites**
+
+Before starting, ensure you have:
+- **Go** installed (for source builds)
+- Access to a supported **database** (PostgreSQL, MySQL, SQLite, etc.)
+- Permissions to modify schema or create tables
+- A version-controlled repository (e.g., Git)
+- Basic knowledge of SQL syntax and database concepts
+
+---
+
+## **Installation Guide**
+
+### **3.1 Install via Binary or Package**
+
+For Linux/macOS/Windows:
+
+```bash
+curl -L https://github.com/golang-migrate/migrate/releases/download/vX.Y.Z/migrate.$OS-$ARCH.tar.gz | tar xvz
+sudo mv migrate.$OS-$ARCH /usr/local/bin/migrate
 ````
 
-### Workflow Phases
+On macOS (via Homebrew):
 
-| **Phase** | **Description** |
-|------------|------------------|
-| **Planning** | Define automation requirements and identify reusable roles. |
-| **Development** | Create or update roles, playbooks, and inventories. |
-| **Testing** | Run syntax checks, linting, and test environments (e.g., Molecule). |
-| **Deployment (CD)** | Deploy tested roles using CI/CD pipelines. |
-| **Verification** | Confirm deployments meet defined acceptance criteria. |
-| **Closure** | Document outputs and mark deployment as complete. |
-
----
-
-## Task Definition
-
-### Objective
-A **Task** represents a unit of automation work — typically provisioning, configuration, or orchestration of a service or environment.
-
-### Key Components
-- **Playbooks** — Define automation logic and role execution.
-- **Variables** — Define environment-specific configurations.
-- **Inventory Files** — Maintain target host details.
-- **Handlers** — Trigger specific events such as service restarts.
-
-### Example Task
-```yaml
-- name: Configure NGINX Web Server
-  hosts: webservers
-  become: yes
-  roles:
-    - nginx_role
-````
-
----
-
-## Subtask — Role Structure
-
-Each **Role** represents a modular automation component responsible for a specific functionality. Roles help in organizing reusable configurations and ensuring maintainability.
-
-### Role Directory Structure
-
-```
-nginx_role/
-├── defaults/
-│   └── main.yml
-├── files/
-│   └── index.html
-├── handlers/
-│   └── main.yml
-├── meta/
-│   └── main.yml
-├── tasks/
-│   └── main.yml
-├── templates/
-│   └── nginx.conf.j2
-├── tests/
-│   └── test.yml
-└── vars/
-    └── main.yml
+```bash
+brew install golang-migrate
 ```
 
-### Role Development Steps
+For Debian/Ubuntu systems:
 
-1. Define role purpose and variables.
-2. Create **tasks** and **handlers** for configuration management.
-3. Add **templates** and **files** for configuration artifacts.
-4. Include **tests** for validation.
-5. Version control with Git (e.g., `v1.0`, `v1.1`).
-
----
-
-## Activity — Continuous Deployment (CD)
-
-The **CD activity** automates deployment of Ansible roles through a pipeline integrated with CI/CD tools such as Jenkins, GitLab CI, or GitHub Actions.
-
-### CD Workflow Steps
-
-1. **Code Commit** — Push Ansible changes to the repository.
-2. **Lint & Syntax Validation** — Run `ansible-lint` and `yamllint`.
-3. **Test Execution** — Validate roles using **Molecule** or **Testinfra**.
-4. **Build Pipeline** — CI/CD pipeline triggers automated deployment.
-5. **Deploy to Environment** — Apply playbooks on target hosts (staging, production).
-6. **Post-Deployment Verification** — Run tests or health checks to validate deployment success.
-7. **Notification** — Inform team of successful or failed deployment.
-
-### Common Tools
-
-| **Tool**                                 | **Purpose**                                    |
-| ---------------------------------------- | ---------------------------------------------- |
-| **Ansible Tower / AWX**                  | Centralized automation control and scheduling. |
-| **Jenkins / GitHub Actions / GitLab CI** | CI/CD orchestration.                           |
-| **Molecule**                             | Role testing framework.                        |
-| **Yamllint & Ansible-lint**              | Code quality validation.                       |
+```bash
+curl -fsSL https://packagecloud.io/golang-migrate/migrate/gpgkey | sudo gpg --dearmor -o /etc/apt/keyrings/migrate.gpg
+echo "deb [signed-by=/etc/apt/keyrings/migrate.gpg] https://packagecloud.io/golang-migrate/migrate/ubuntu/ $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/migrate.list
+sudo apt-get update && sudo apt-get install -y migrate
+```
 
 ---
 
-## Acceptance Criteria
+### **3.2 Install via Go Toolchain**
 
-Each automation role and CD process must meet specific **acceptance criteria** before being marked complete.
+If you prefer building from source:
 
-| **Criterion**                | **Description**                                          |
-| ---------------------------- | -------------------------------------------------------- |
-| **Code Validation Passed**   | No lint or syntax errors found.                          |
-| **Role Tested Successfully** | Molecule or Testinfra tests executed without failure.    |
-| **Deployment Verified**      | Role executed correctly on the target environment.       |
-| **Version Tagged**           | Role version tagged in Git for traceability.             |
-| **Documentation Updated**    | Role README and changelog updated.                       |
-| **Rollback Tested**          | Rollback process verified for recovery scenarios.        |
-| **Approval Received**        | Deployment confirmed by automation or environment owner. |
+```bash
+go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+```
+
+> Replace 'postgres' with the appropriate driver tags (e.g., mysql, sqlite3) for your database.
 
 ---
 
-## Best Practices
+### **3.3 Verify Installation**
 
-1. **Keep Roles Modular** — One role should handle a single responsibility.
-2. **Use Variables Wisely** — Parameterize configurations for flexibility.
-3. **Implement Idempotency** — Ensure tasks don’t cause unintended changes.
-4. **Enforce Version Control** — Tag role releases for consistency.
-5. **Use Molecule for Testing** — Automate validation for every role update.
-6. **Integrate Security Scanning** — Validate credentials, secrets, and permissions.
-7. **Automate Documentation Updates** — Sync README and changelog updates with deployments.
+To confirm installation:
 
----
+```bash
+migrate -version
+```
 
-## FAQs
+Expected output:
+v4.xx.x — the installed version.
+Check available commands with:
 
-**1. What is the purpose of separating roles in Ansible?**
-To make automation reusable, modular, and easy to maintain across multiple environments.
-
-**2. How can I test roles locally before deploying?**
-Use **Molecule** with Docker or Vagrant to simulate environments.
-
-**3. How does CI/CD fit into Ansible automation?**
-It automates testing and deployment of roles after code commits.
-
-**4. What happens if deployment fails?**
-Rollback scripts or Ansible handlers restore the previous working state.
+```bash
+migrate -help
+```
 
 ---
 
-## Contact Information
+## **Procedure**
 
-| **Name** | **Role**        | **Email**                                                                             |
-| -------- | --------------- | ------------------------------------------------------------------------------------- |
-| Liyakath Ali  | DevOps Engineer | [liyakath.ali.snaatak@mygurukulam.co](mailto:liyakath.ali.snaatak@mygurukulam.co) |
+### **4.1 Prepare Migrations Directory**
+
+Create a directory in your project to store migration files:
+
+```bash
+mkdir migrations
+```
+
+Structure:
+
+```
+migrations/
+  000001_create_users_table.up.sql
+  000001_create_users_table.down.sql
+  000002_add_email_column.up.sql
+  000002_add_email_column.down.sql
+```
 
 ---
 
-## References
+### **4.2 Create Migration Files**
 
-| **Reference**          | **Link**                                                                                                                                                             | **Description**                               |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| Ansible Documentation  | [https://docs.ansible.com/](https://docs.ansible.com/)                                                                                                               | Official Ansible user guide                   |
-| Ansible Best Practices | [https://docs.ansible.com/ansible/latest/user_guide/playbooks_best_practices.html](https://docs.ansible.com/ansible/latest/user_guide/playbooks_best_practices.html) | Recommended project structure and conventions |
-| Molecule Testing       | [https://molecule.readthedocs.io/](https://molecule.readthedocs.io/)                                                                                                 | Framework for Ansible role testing            |
-| Jenkins Pipelines      | [https://www.jenkins.io/doc/](https://www.jenkins.io/doc/)                                                                                                           | CI/CD pipeline automation reference           |
-| GitHub Actions         | [https://docs.github.com/actions](https://docs.github.com/actions)                                                                                                   | CI/CD workflow configuration reference        |
+Each migration must have a unique version number and two files: .up.sql (apply) and .down.sql (rollback).
 
+**Example – Up Migration (000001_create_users_table.up.sql):**
+
+```sql
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+**Example – Down Migration (000001_create_users_table.down.sql):**
+
+```sql
+DROP TABLE IF EXISTS users;
+```
+
+---
+
+### **4.3 Running Migrations (Up/Down/Steps)**
+
+Apply all pending migrations:
+
+```bash
+migrate -path ./migrations -database "postgres://user:password@localhost:5432/dbname?sslmode=disable" up
+```
+
+Rollback the last migration:
+
+```bash
+migrate -path ./migrations -database "postgres://..." down 1
+```
+
+Apply specific steps:
+
+```bash
+migrate -path ./migrations -database "postgres://..." up 2
+```
+
+> The tool automatically tracks applied migrations in a system table (schema_migrations).
+
+---
+
+### **4.4 Configure for CI/CD or Automation**
+
+Integrate with CI/CD pipelines (e.g., Jenkins, GitHub Actions, or GitLab CI):
+
+```bash
+migrate -path ./migrations -database "${DATABASE_URL}" up
+```
+
+* Use environment variables for credentials.
+* Avoid concurrent migrations — serialize execution.
+* Rollback automatically on failure if possible.
+
+---
+
+## **Workflow Diagram**
+
+```mermaid
+flowchart TD
+    A[Start] --> B[Install migrate tool]
+    B --> C[Create migrations directory]
+    C --> D[Write .up.sql and .down.sql files]
+    D --> E[Configure database connection URL]
+    E --> F[Run migrate up to apply migrations]
+    F --> G[Validate database schema]
+    G --> H[Automate in CI/CD pipeline]
+    H --> I[Monitor & rollback if needed]
+    I --> J[End]
+```
+
+---
+
+## **Best Practices**
+
+* Keep migrations **atomic** and **incremental**.
+* Always include `.down.sql` for rollback capability.
+* Test migrations in **staging** before production.
+* Never edit previously applied migrations — create new ones instead.
+* Use **semantic versioning** and meaningful filenames.
+* Store migrations in **version control** (Git).
+* Automate database backups before running migrations.
+
+---
+
+## **Troubleshooting & Tips**
+
+| Issue                   | Cause                            | Solution                                          |
+| ----------------------- | -------------------------------- | ------------------------------------------------- |
+| *Unknown driver*        | Database driver tag missing      | Rebuild with correct `-tags`                      |
+| *Connection error*      | Invalid DB URL                   | Verify credentials and encoding                   |
+| *Dirty migration state* | Partial migration failed         | Clean or mark version manually after verification |
+| *Permission denied*     | Insufficient database privileges | Grant proper DDL access                           |
+| *Migrations not found*  | Incorrect path                   | Ensure `-path` matches directory                  |
+
+---
+
+## **Conclusion**
+
+The **Go Migrate Tool** provides a reliable, versioned, and consistent way to handle database schema changes across environments.
+Following this SOP ensures:
+
+* Smooth collaboration between developers and DBAs
+* Reliable version tracking
+* Reduced risk of schema conflicts
+* Streamlined integration into CI/CD workflows
+
+Proper use of Migrate strengthens database governance, scalability, and system integrity.
+
+---
+
+## **Contact Information**
+
+| Name           | Email Address                                                           |
+| -------------- | ----------------------------------------------------------------------- |
+| Asma Badr Khan | [asma.badr.khan.snaatak@mygurukulam.com](mailto:asma.badr.khan.snaatak@mygurukulam.com) |
+
+---
+
+## **References**
+
+| Topic                  | Link                                                                                                                                       | Description                   |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------- |
+| Go Migrate (GitHub)    | [https://github.com/golang-migrate/migrate](https://github.com/golang-migrate/migrate)                                                     | Official tool repository      |
+| BetterStack Guide      | [https://betterstack.com/community/guides/scaling-go/golang-migrate/](https://betterstack.com/community/guides/scaling-go/golang-migrate/) | Comprehensive usage guide     |
+| CI/CD Integration Docs | [https://docs.github.com/actions](https://docs.github.com/actions)                                                                         | Workflow automation reference |
