@@ -229,7 +229,7 @@ flowchart LR
 
 ---
 
-## FAQs (External Links)
+## FAQs
 
 * [Why use a proxy in React?](https://create-react-app.dev/docs/proxying-api-requests-in-development/)
 * [CORS explanation](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS)
