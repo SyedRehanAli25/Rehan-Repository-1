@@ -1,260 +1,248 @@
-# Standard Operating Procedure (SOP) for Migrate 
+# Notification API Implementation Document
+<img width="122" height="122" alt="image" src="https://github.com/user-attachments/assets/b596220f-c38b-4754-ac5d-439f8361325f" />
 
-**Title:** Managing Database Schema Migrations with migrate
+<details>
+<summary>Table of Contents</summary>
 
-| Author | Created On | Version | Last Updated By | Last Edited On | Level | Reviewer |
-|--------|------------|---------|-----------------|----------------|--------|----------|
-| Asma Badr Khan | 2025-10-31 | 1.0 | Asma Badr Khan | 2025-10-31 | Internal Review | Team |
+1. [Overview](#overview)
+2. [Authors](#authors)
+3. [Prerequisites](#prerequisites)
+4. [Step-by-Step Implementation](#step-by-step-implementation)
 
----
+   * [Step 1: Navigate to Project](#step-1-navigate-to-project)
+   * [Step 2: Install Dependencies](#step-2-install-dependencies)
+   * [Step 3: Configure SMTP & Elasticsearch](#step-3-configure-smtp--elasticsearch)
+   * [Step 4: Add Employee Data](#step-4-add-employee-data)
+   * [Why We Are Using Elasticsearch](#why-we-are-using-elasticsearch)
+   * [Step 5: Fix Python Code Issues](#step-5-fix-python-code-issues)
+   * [Step 6: Set Config Environment Variable](#step-6-set-config-environment-variable)
+   * [Step 7: Run Notification Script](#step-7-run-notification-script)
+   * [Step 8: Optional Cron Scheduling](#step-8-optional-cron-scheduling)
+5. [Frontend Proxy Setup](#frontend-proxy-setup)
+6. [Architecture & Workflow](#architecture--workflow)
 
-## **Table of Contents**
+   * [Architecture Diagram](#architecture-diagram)
+   * [Workflow Diagram](#workflow-diagram)
+7. [FAQs (External Links)](#faqs-external-links)
+8. [Reference Table](#reference-table)
 
-1. [Introduction](#introduction)
-2. [Prerequisites](#prerequisites)
-3. [Installation Guide](#installation-guide)
-   - [3.1 Install via Binary or Package](#31-install-via-binary-or-package)
-   - [3.2 Install via Go Toolchain](#32-install-via-go-toolchain)
-   - [3.3 Verify Installation](#33-verify-installation)
-4. [Procedure](#procedure)
-   - [4.1 Prepare Migrations Directory](#41-prepare-migrations-directory)
-   - [4.2 Create Migration Files](#42-create-migration-files)
-   - [4.3 Running Migrations (Up/Down/Steps)](#43-running-migrations-updownsteps)
-   - [4.4 Configure for CI/CD or Automation](#44-configure-for-cicd-or-automation)
-5. [Workflow Diagram](#workflow-diagram)
-6. [Best Practices](#best-practices)
-7. [Troubleshooting & Tips](#troubleshooting--tips)
-8. [Conclusion](#conclusion)
-9. [Contact Information](#contact-information)
-10. [References](#references)
-
----
-
-## **Introduction**
-
-The **Go Migrate Tool** (migrate) is a lightweight, open-source command-line utility designed to manage **database schema migrations** efficiently and safely. It enables developers and DevOps teams to version, apply, and roll back schema changes across multiple environments.  
-
-This SOP outlines a standardized approach to **installing, configuring, and using the Migrate tool**, ensuring consistent, auditable, and reversible schema updates in production and development environments. The tool supports several databases like PostgreSQL, MySQL, SQLite, and MongoDB.
+</details>
 
 ---
 
-## **Prerequisites**
+## Overview
 
-Before starting, ensure you have:
-- **Go** installed (for source builds)
-- Access to a supported **database** (PostgreSQL, MySQL, SQLite, etc.)
-- Permissions to modify schema or create tables
-- A version-controlled repository (e.g., Git)
-- Basic knowledge of SQL syntax and database concepts
+This document provides a **Step-by-Step Standard Operating Procedure (SOP)** for the **Notification API**, a microservice designed to send email notifications to employees.
+
+It contains:
+
+* Setup and installation instructions
+* SMTP and Elasticsearch configuration
+* Steps to add employee data, run scripts, and schedule notifications
+* Frontend proxy setup instructions
+* Architecture and workflow diagrams
+* FAQs and references for further guidance
+
+The SOP is intended for developers, DevOps engineers, and QA teams deploying, testing, or maintaining the Notification API.
+
+**Notification API repository:** [GitHub - Notification Worker](https://github.com/OT-MICROSERVICES/notification-worker)
 
 ---
 
-## **Installation Guide**
+## Author Table
 
-### **3.1 Install via Binary or Package**
+| Author         | Created on | Version | Last updated by | Last Edited On | Reviewer  |
+| -------------- | ---------- | ------- | --------------- | -------------- | --------- |
+| Syed Rehan Ali | 2025-11-10 | 1.1     | Syed Rehan Ali  | 2025-11-10     | Team   |
+| Syed Rehan Ali |  | 1.2     | Syed Rehan Ali  |      |  |
+| Syed Rehan Ali |  | 1.2     | Syed Rehan Ali  |     |  |
 
-For Linux/macOS/Windows:
+---
 
-```bash
-curl -L https://github.com/golang-migrate/migrate/releases/download/vX.Y.Z/migrate.$OS-$ARCH.tar.gz | tar xvz
-sudo mv migrate.$OS-$ARCH /usr/local/bin/migrate
+## Prerequisites
+
+* Python 3.10+
+* pip3
+* Access to Elasticsearch server
+* Gmail account or other SMTP credentials
+
+---
+
+## Step-by-Step Implementation
+
+### Step 1: Navigate to Project
+
+`cd ~/OT-MICROSERVICES/notification-worker`
+
+---
+
+### Step 2: Install Dependencies
+
+`pip3 install -r requirements.txt --user`
+
+---
+
+### Step 3: Configure SMTP & Elasticsearch
+
+Edit `config.yaml`:
+
+```yaml
+smtp:
+  from: "rehan.ali9325@gmail.com"
+  username: "rehan.ali9325@gmail.com"
+  password: "your-app-password"
+  smtp_server: "smtp.gmail.com"
+  smtp_port: "587"
+
+elasticsearch:
+  username: "elastic"
+  password: "elastic"
+  host: "3.218.208.75"
+  port: 9200
 ````
 
-On macOS (via Homebrew):
+---
+
+### Step 4: Add Employee Data
 
 ```bash
-brew install golang-migrate
-```
-
-For Debian/Ubuntu systems:
-
-```bash
-curl -fsSL https://packagecloud.io/golang-migrate/migrate/gpgkey | sudo gpg --dearmor -o /etc/apt/keyrings/migrate.gpg
-echo "deb [signed-by=/etc/apt/keyrings/migrate.gpg] https://packagecloud.io/golang-migrate/migrate/ubuntu/ $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/migrate.list
-sudo apt-get update && sudo apt-get install -y migrate
+curl -X POST "http://3.218.208.75:9200/employee-management/_doc/1" \
+-H 'Content-Type: application/json' \
+-d '{"email": "user@example.com","name": "John Doe"}'
 ```
 
 ---
 
-### **3.2 Install via Go Toolchain**
+### Why We Are Using Elasticsearch
 
-If you prefer building from source:
+Elasticsearch is used in the Notification API to efficiently **store, search, and retrieve employee data** and **log notification statuses**. Its advantages include:
 
-```bash
-go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
-```
+* **Fast Search & Retrieval:** Quickly fetch employee emails and related metadata for notifications.
+* **Scalable Storage:** Handle a growing number of employee records without performance degradation.
+* **Structured Logging:** Log notification success/failure for auditing and troubleshooting.
+* **Integration Friendly:** Seamlessly integrates with Python and other microservices in the system.
 
-> Replace 'postgres' with the appropriate driver tags (e.g., mysql, sqlite3) for your database.
+By using Elasticsearch, the Notification API ensures that notifications are sent accurately and logged efficiently for future reference.
 
 ---
 
-### **3.3 Verify Installation**
+### Step 5: Fix Python Code Issues
 
-To confirm installation:
-
-```bash
-migrate -version
-```
-
-Expected output:
-v4.xx.x — the installed version.
-Check available commands with:
+Ensure correct config reads and email sending logic. Run:
 
 ```bash
-migrate -help
+python3 notification_api.py --mode scheduled
+python3 notification_api.py --mode external
 ```
 
 ---
 
-## **Procedure**
-
-### **4.1 Prepare Migrations Directory**
-
-Create a directory in your project to store migration files:
+### Step 6: Set Config Environment Variable
 
 ```bash
-mkdir migrations
-```
-
-Structure:
-
-```
-migrations/
-  000001_create_users_table.up.sql
-  000001_create_users_table.down.sql
-  000002_add_email_column.up.sql
-  000002_add_email_column.down.sql
+export CONFIG_FILE=./config.yaml
 ```
 
 ---
 
-### **4.2 Create Migration Files**
+### Step 7: Run Notification Script
 
-Each migration must have a unique version number and two files: .up.sql (apply) and .down.sql (rollback).
-
-**Example – Up Migration (000001_create_users_table.up.sql):**
-
-```sql
-CREATE TABLE users (
-    id SERIAL PRIMARY KEY,
-    username VARCHAR(50) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-**Example – Down Migration (000001_create_users_table.down.sql):**
-
-```sql
-DROP TABLE IF EXISTS users;
+```bash
+python3 notification_api.py --mode external
 ```
 
 ---
 
-### **4.3 Running Migrations (Up/Down/Steps)**
+### Step 8: Optional Cron Scheduling
 
-Apply all pending migrations:
-
-```bash
-migrate -path ./migrations -database "postgres://user:password@localhost:5432/dbname?sslmode=disable" up
+```cron
+0 * * * * CONFIG_FILE=/path/to/config.yaml /usr/bin/python3 /path/to/notification_api.py --mode external
 ```
-
-Rollback the last migration:
-
-```bash
-migrate -path ./migrations -database "postgres://..." down 1
-```
-
-Apply specific steps:
-
-```bash
-migrate -path ./migrations -database "postgres://..." up 2
-```
-
-> The tool automatically tracks applied migrations in a system table (schema_migrations).
 
 ---
 
-### **4.4 Configure for CI/CD or Automation**
+## Frontend Proxy Setup
 
-Integrate with CI/CD pipelines (e.g., Jenkins, GitHub Actions, or GitLab CI):
+```javascript
+const { createProxyMiddleware } = require('http-proxy-middleware');
 
-```bash
-migrate -path ./migrations -database "${DATABASE_URL}" up
+module.exports = function(app) {
+  app.use('/employee', createProxyMiddleware({ target: 'http://localhost:8080', changeOrigin: true }));
+  app.use('/salary', createProxyMiddleware({ target: 'http://localhost:8081', changeOrigin: true }));
+  app.use('/attendance', createProxyMiddleware({ target: 'http://localhost:8085', changeOrigin: true }));
+  app.use('/notification', createProxyMiddleware({ target: 'http://localhost:5001', changeOrigin: true }));
+};
 ```
-
-* Use environment variables for credentials.
-* Avoid concurrent migrations — serialize execution.
-* Rollback automatically on failure if possible.
 
 ---
 
-## **Workflow Diagram**
+## Architecture & Workflow
+
+### Architecture Diagram
 
 ```mermaid
 flowchart TD
-    A[Start] --> B[Install migrate tool]
-    B --> C[Create migrations directory]
-    C --> D[Write .up.sql and .down.sql files]
-    D --> E[Configure database connection URL]
-    E --> F[Run migrate up to apply migrations]
-    F --> G[Validate database schema]
-    G --> H[Automate in CI/CD pipeline]
-    H --> I[Monitor & rollback if needed]
-    I --> J[End]
+    subgraph Frontend
+        ReactApp["[React App](https://create-react-app.dev/) (localhost:3000)"]
+    end
+
+    subgraph Backend_APIs
+        EmployeeAPI["[Employee API](https://github.com/OT-MICROSERVICES/employee-api) (localhost:8080)"]
+        SalaryAPI["[Salary API](https://github.com/OT-MICROSERVICES/salary-api) (localhost:8081)"]
+        AttendanceAPI["[Attendance API](https://github.com/OT-MICROSERVICES/attendance-api) (localhost:8085)"]
+        NotificationAPI["[Notification API](https://github.com/OT-MICROSERVICES/notification-worker) (Flask, localhost:5001)"]
+    end
+
+    subgraph Elasticsearch_Server
+        ES["[Elasticsearch](https://www.elastic.co/elasticsearch/)"]
+    end
+
+    subgraph SMTP_Server
+        SMTP["[SMTP Server](https://support.google.com/mail/answer/185833) (Gmail/Other)"]
+    end
+
+    ReactApp -->|/employee/*| EmployeeAPI
+    ReactApp -->|/salary/*| SalaryAPI
+    ReactApp -->|/attendance/*| AttendanceAPI
+    ReactApp -->|/notification/*| NotificationAPI
+
+    NotificationAPI --> ES
+    NotificationAPI --> SMTP
+    EmployeeAPI -->|Employee Data| NotificationAPI
+
+    CronJob["[Cron Scheduler](https://crontab.guru/) / Scheduled Mode"] --> NotificationAPI
+```
+
+### Workflow Diagram
+
+```mermaid
+flowchart LR
+    Start["[Start: Trigger Notification](#step-7-run-notification-script)"]
+    FetchData["[Fetch Employee Emails](#step-4-add-employee-data) from Elasticsearch"]
+    GenerateMsg["[Generate Email Content](#step-5-fix-python-code-issues)"]
+    SendEmail["[Send Email via SMTP](#step-3-configure-smtp--elasticsearch)"]
+    LogES["[Log Notification Status](#step-4-add-employee-data) in Elasticsearch"]
+    End["End: Notification sent successfully"]
+
+    Start --> FetchData --> GenerateMsg --> SendEmail --> LogES --> End
 ```
 
 ---
 
-## **Best Practices**
+## FAQs (External Links)
 
-* Keep migrations **atomic** and **incremental**.
-* Always include `.down.sql` for rollback capability.
-* Test migrations in **staging** before production.
-* Never edit previously applied migrations — create new ones instead.
-* Use **semantic versioning** and meaningful filenames.
-* Store migrations in **version control** (Git).
-* Automate database backups before running migrations.
+* [Why use a proxy in React?](https://create-react-app.dev/docs/proxying-api-requests-in-development/)
+* [CORS explanation](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS)
+* [Elasticsearch integration with Python](https://www.elastic.co/guide/en/elasticsearch/client/python-api/current/index.html)
 
 ---
 
-## **Troubleshooting & Tips**
+## Reference Table
 
-| Issue                   | Cause                            | Solution                                          |
-| ----------------------- | -------------------------------- | ------------------------------------------------- |
-| *Unknown driver*        | Database driver tag missing      | Rebuild with correct `-tags`                      |
-| *Connection error*      | Invalid DB URL                   | Verify credentials and encoding                   |
-| *Dirty migration state* | Partial migration failed         | Clean or mark version manually after verification |
-| *Permission denied*     | Insufficient database privileges | Grant proper DDL access                           |
-| *Migrations not found*  | Incorrect path                   | Ensure `-path` matches directory                  |
-
----
-
-## **Conclusion**
-
-The **Go Migrate Tool** provides a reliable, versioned, and consistent way to handle database schema changes across environments.
-Following this SOP ensures:
-
-* Smooth collaboration between developers and DBAs
-* Reliable version tracking
-* Reduced risk of schema conflicts
-* Streamlined integration into CI/CD workflows
-
-Proper use of Migrate strengthens database governance, scalability, and system integrity.
-
----
-
-## **Contact Information**
-
-| Name           | Email Address                                                           |
-| -------------- | ----------------------------------------------------------------------- |
-| Asma Badr Khan | [asma.badr.khan.snaatak@mygurukulam.com](mailto:asma.badr.khan.snaatak@mygurukulam.com) |
-
----
-
-## **References**
-
-| Topic                  | Link                                                                                                                                       | Description                   |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------- |
-| Go Migrate (GitHub)    | [https://github.com/golang-migrate/migrate](https://github.com/golang-migrate/migrate)                                                     | Official tool repository      |
-| BetterStack Guide      | [https://betterstack.com/community/guides/scaling-go/golang-migrate/](https://betterstack.com/community/guides/scaling-go/golang-migrate/) | Comprehensive usage guide     |
-| CI/CD Integration Docs | [https://docs.github.com/actions](https://docs.github.com/actions)                                                                         | Workflow automation reference |
+| Reference                   | Description                            | Link                                                                                               |
+| --------------------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Notification API Repo       | Source code and main repo              | [GitHub](https://github.com/OT-MICROSERVICES/notification-worker)                                  |
+| Gmail App Passwords         | How to generate app passwords for SMTP | [Google Account](https://myaccount.google.com/apppasswords)                                        |
+| Elasticsearch Python Client | Official Python client documentation   | [Elastic Docs](https://www.elastic.co/guide/en/elasticsearch/client/python-api/current/index.html) |
+| React Proxy Setup           | Avoiding CORS in development           | [Create React App Docs](https://create-react-app.dev/docs/proxying-api-requests-in-development/)   |
+| Cron Jobs                   | Scheduling scripts in Linux            | [Cron Tutorial](https://crontab.guru/)                                                             |
