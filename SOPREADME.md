@@ -1,90 +1,155 @@
-# Notification API Implementation Document
-<img width="122" height="122" alt="image" src="https://github.com/user-attachments/assets/b596220f-c38b-4754-ac5d-439f8361325f" />
+# Notification API - Detailed Documentation
 
-<details>
-<summary>Table of Contents</summary>
-
-1. [Overview](#overview)
-2. [Authors](#authors)
-3. [Prerequisites](#prerequisites)
-4. [Step-by-Step Implementation](#step-by-step-implementation)
-
-   * [Step 1: Navigate to Project](#step-1-navigate-to-project)
-   * [Step 2: Install Dependencies](#step-2-install-dependencies)
-   * [Step 3: Configure SMTP & Elasticsearch](#step-3-configure-smtp--elasticsearch)
-   * [Step 4: Add Employee Data](#step-4-add-employee-data)
-   * [Why We Are Using Elasticsearch](#why-we-are-using-elasticsearch)
-   * [Step 5: Fix Python Code Issues](#step-5-fix-python-code-issues)
-   * [Step 6: Set Config Environment Variable](#step-6-set-config-environment-variable)
-   * [Step 7: Run Notification Script](#step-7-run-notification-script)
-   * [Step 8: Optional Cron Scheduling](#step-8-optional-cron-scheduling)
-5. [Frontend Proxy Setup](#frontend-proxy-setup)
-6. [Architecture & Workflow](#architecture--workflow)
-
-   * [Architecture Diagram](#architecture-diagram)
-   * [Workflow Diagram](#workflow-diagram)
-7. [FAQs (External Links)](#faqs-external-links)
-8. [Reference Table](#reference-table)
-
-</details>
-
----
-
-## Overview
-
-This document provides a **Step-by-Step Standard Operating Procedure (SOP)** for the **Notification API**, a microservice designed to send email notifications to employees.
-
-It contains:
-
-* Setup and installation instructions
-* SMTP and Elasticsearch configuration
-* Steps to add employee data, run scripts, and schedule notifications
-* Frontend proxy setup instructions
-* Architecture and workflow diagrams
-* FAQs and references for further guidance
-
-The SOP is intended for developers, DevOps engineers, and QA teams deploying, testing, or maintaining the Notification API.
-
-**Notification API repository:** [GitHub - Notification Worker](https://github.com/OT-MICROSERVICES/notification-worker)
+**Repository:** [GitHub – OT-MICROSERVICES/notification-worker](https://github.com/OT-MICROSERVICES/notification-worker)
 
 ---
 
 ## Author Table
 
-| Author         | Created on | Version | Last updated by | Last Edited On | Reviewer  |
-| -------------- | ---------- | ------- | --------------- | -------------- | --------- |
-| Syed Rehan Ali | 2025-11-10 | 1.1     | Syed Rehan Ali  | 2025-11-10     | Team   |
-| Syed Rehan Ali |  | 1.2     | Syed Rehan Ali  |      |  |
-| Syed Rehan Ali |  | 1.2     | Syed Rehan Ali  |     |  |
+| Author             | Role                   | Created On | Version | Last Updated By | Last Edited On | Reviewer |
+| ------------------ | ---------------------- | ---------- | ------- | --------------- | -------------- | -------- |
+| **Asma Badr Khan** | Maintainer | 2025-11-10 | 1.2     | Syed Rehan Ali  | 2025-11-10     | Team     |
 
 ---
 
-## Prerequisites
+## Purpose
 
-* Python 3.10+
-* pip3
-* Access to Elasticsearch server
-* Gmail account or other SMTP credentials
+The **Notification API** is a microservice that automates **email notifications** to employees. It retrieves employee records from **Elasticsearch**, sends emails via **SMTP**, and logs notification statuses back into Elasticsearch for tracking and audit.
 
----
-
-## Step-by-Step Implementation
-
-### Step 1: Navigate to Project
-
-`cd ~/OT-MICROSERVICES/notification-worker`
+It integrates with other microservices such as the Employee, Salary, and Attendance APIs within the OT Microservices ecosystem.
 
 ---
 
-### Step 2: Install Dependencies
+## Pre-requisites
 
-`pip3 install -r requirements.txt --user`
+### System Requirements
+
+| Category         | Minimum          | Recommended        |
+| ---------------- | ---------------- | ------------------ |
+| Processor        | Dual-core        | 2+ cores           |
+| RAM              | 4 GB             | 8 GB+              |
+| Disk             | 20 GB            | 50 GB+             |
+| Operating System | Ubuntu 22.04 LTS | Any Linux-based OS |
 
 ---
 
-### Step 3: Configure SMTP & Elasticsearch
+### Dependencies
 
-Edit `config.yaml`:
+#### Build-time Dependencies
+
+* Git (for cloning the repository)
+* Python 3.10 or higher
+
+#### Run-time Dependencies
+
+* Python packages listed in `requirements.txt`
+* Valid SMTP credentials (e.g., Gmail app password)
+* Running Elasticsearch server with credentials
+
+#### Other Dependencies
+
+* Integration with Employee, Salary, and Attendance APIs
+* Optional: Cron scheduler (for scheduled notifications)
+
+---
+
+### Ports
+
+| Direction | Port | Description            |
+| --------- | ---- | ---------------------- |
+| Inbound   | 5001 | Flask Notification API |
+| Outbound  | 587  | SMTP (Gmail/Other)     |
+| Outbound  | 9200 | Elasticsearch server   |
+
+---
+
+### Environment Variables
+
+| Variable      | Description                | Example         |
+| ------------- | -------------------------- | --------------- |
+| `CONFIG_FILE` | Path to configuration YAML | `./config.yaml` |
+
+---
+
+## Architecture
+
+The Notification API interacts with multiple components of the system to ensure message delivery and logging.
+
+```mermaid
+flowchart TD
+    subgraph Frontend
+        ReactApp["React Frontend (localhost:3000)"]
+    end
+
+    subgraph Backend_APIs
+        EmployeeAPI["Employee API (localhost:8080)"]
+        SalaryAPI["Salary API (localhost:8081)"]
+        AttendanceAPI["Attendance API (localhost:8085)"]
+        NotificationAPI["Notification API (Flask, localhost:5001)"]
+    end
+
+    subgraph Elasticsearch
+        ES["Elasticsearch Server"]
+    end
+
+    subgraph SMTP
+        Mail["SMTP Server (Gmail/Other)"]
+    end
+
+    ReactApp --> EmployeeAPI
+    ReactApp --> SalaryAPI
+    ReactApp --> AttendanceAPI
+    ReactApp --> NotificationAPI
+
+    NotificationAPI --> ES
+    NotificationAPI --> Mail
+    EmployeeAPI --> NotificationAPI
+```
+
+---
+
+## Dataflow Diagram
+
+```mermaid
+sequenceDiagram
+    participant Cron as Cron Scheduler
+    participant NotificationAPI as Notification API
+    participant ES as Elasticsearch
+    participant SMTP as SMTP Server
+
+    Cron->>NotificationAPI: Trigger notification (scheduled/external)
+    NotificationAPI->>ES: Fetch employee records
+    NotificationAPI->>SMTP: Send email
+    SMTP-->>NotificationAPI: Response (success/failure)
+    NotificationAPI->>ES: Log result
+```
+
+---
+
+## Step-by-Step Setup
+
+### Step 0: Clone the Repository
+
+```bash
+git clone https://github.com/OT-MICROSERVICES/notification-worker.git
+```
+
+---
+
+### Step 1: Install Python and Dependencies
+
+```bash
+sudo apt update
+sudo apt install -y python3.10 python3-pip git
+cd notification-worker
+pip install -r requirements.txt --user
+```
+
+---
+
+### Step 2: Configure SMTP & Elasticsearch
+
+Edit config.yaml:
 
 ```yaml
 smtp:
@@ -99,45 +164,21 @@ elasticsearch:
   password: "elastic"
   host: "3.218.208.75"
   port: 9200
-````
+```
 
 ---
 
-### Step 4: Add Employee Data
+### Step 3: Add Employee Data in Elasticsearch
 
 ```bash
 curl -X POST "http://3.218.208.75:9200/employee-management/_doc/1" \
 -H 'Content-Type: application/json' \
--d '{"email": "user@example.com","name": "John Doe"}'
+-d '{"email": "user@example.com", "name": "John Doe"}'
 ```
 
 ---
 
-### Why We Are Using Elasticsearch
-
-Elasticsearch is used in the Notification API to efficiently **store, search, and retrieve employee data** and **log notification statuses**. Its advantages include:
-
-* **Fast Search & Retrieval:** Quickly fetch employee emails and related metadata for notifications.
-* **Scalable Storage:** Handle a growing number of employee records without performance degradation.
-* **Structured Logging:** Log notification success/failure for auditing and troubleshooting.
-* **Integration Friendly:** Seamlessly integrates with Python and other microservices in the system.
-
-By using Elasticsearch, the Notification API ensures that notifications are sent accurately and logged efficiently for future reference.
-
----
-
-### Step 5: Fix Python Code Issues
-
-Ensure correct config reads and email sending logic. Run:
-
-```bash
-python3 notification_api.py --mode scheduled
-python3 notification_api.py --mode external
-```
-
----
-
-### Step 6: Set Config Environment Variable
+### Step 4: Set Config Environment Variable
 
 ```bash
 export CONFIG_FILE=./config.yaml
@@ -145,7 +186,7 @@ export CONFIG_FILE=./config.yaml
 
 ---
 
-### Step 7: Run Notification Script
+### Step 5: Run Notification Script
 
 ```bash
 python3 notification_api.py --mode external
@@ -153,7 +194,7 @@ python3 notification_api.py --mode external
 
 ---
 
-### Step 8: Optional Cron Scheduling
+### Step 6: Optional — Schedule with Cron
 
 ```cron
 0 * * * * CONFIG_FILE=/path/to/config.yaml /usr/bin/python3 /path/to/notification_api.py --mode external
@@ -161,88 +202,86 @@ python3 notification_api.py --mode external
 
 ---
 
-## Frontend Proxy Setup
+## Monitoring & Health
 
-```javascript
-const { createProxyMiddleware } = require('http-proxy-middleware');
-
-module.exports = function(app) {
-  app.use('/employee', createProxyMiddleware({ target: 'http://localhost:8080', changeOrigin: true }));
-  app.use('/salary', createProxyMiddleware({ target: 'http://localhost:8081', changeOrigin: true }));
-  app.use('/attendance', createProxyMiddleware({ target: 'http://localhost:8085', changeOrigin: true }));
-  app.use('/notification', createProxyMiddleware({ target: 'http://localhost:5001', changeOrigin: true }));
-};
-```
+| Metric       | Description                  | Priority | Threshold  |
+| ------------ | ---------------------------- | -------- | ---------- |
+| Disk Usage   | Disk utilization             | High     | > 90%      |
+| CPU Usage    | CPU utilization              | Medium   | > 70%      |
+| Memory Usage | RAM consumption              | Medium   | > 80%      |
+| Error Rate   | Failed notifications per min | High     | > 5/min    |
+| Uptime       | Service availability         | High     | ≥ 99.9%    |
+| Throughput   | Emails processed/min         | Medium   | > 1000/min |
 
 ---
 
-## Architecture & Workflow
+### Health Probes
 
-### Architecture Diagram
+| Probe     | Type | Delay | Period | Timeout | Fail Threshold |
+| --------- | ---- | ----- | ------ | ------- | -------------- |
+| Liveness  | HTTP | 10 s  | 10 s   | 5 s     | 3              |
+| Readiness | HTTP | 10 s  | 10 s   | 5 s     | 3              |
 
-```mermaid
-flowchart TD
-    subgraph Frontend
-        ReactApp["[React App](https://create-react-app.dev/) (localhost:3000)"]
-    end
+---
 
-    subgraph Backend_APIs
-        EmployeeAPI["[Employee API](https://github.com/OT-MICROSERVICES/employee-api) (localhost:8080)"]
-        SalaryAPI["[Salary API](https://github.com/OT-MICROSERVICES/salary-api) (localhost:8081)"]
-        AttendanceAPI["[Attendance API](https://github.com/OT-MICROSERVICES/attendance-api) (localhost:8085)"]
-        NotificationAPI["[Notification API](https://github.com/OT-MICROSERVICES/notification-worker) (Flask, localhost:5001)"]
-    end
+### Logging
 
-    subgraph Elasticsearch_Server
-        ES["[Elasticsearch](https://www.elastic.co/elasticsearch/)"]
-    end
+* **Event Logs:** Workflow progress (fetch, send, log)
+* **Access Logs:** User trigger, timestamp, mode
+* **Server Logs:** Start, stop, and runtime errors
+* **Audit Logs:** Email success/failure reports
 
-    subgraph SMTP_Server
-        SMTP["[SMTP Server](https://support.google.com/mail/answer/185833) (Gmail/Other)"]
-    end
+---
 
-    ReactApp -->|/employee/*| EmployeeAPI
-    ReactApp -->|/salary/*| SalaryAPI
-    ReactApp -->|/attendance/*| AttendanceAPI
-    ReactApp -->|/notification/*| NotificationAPI
+## Disaster Recovery & High Availability
 
-    NotificationAPI --> ES
-    NotificationAPI --> SMTP
-    EmployeeAPI -->|Employee Data| NotificationAPI
+* **High Availability:**
+  Deploy multiple instances of Notification API behind a load balancer or Kubernetes replica set.
 
-    CronJob["[Cron Scheduler](https://crontab.guru/) / Scheduled Mode"] --> NotificationAPI
-```
+* **Disaster Recovery:**
+  Back up Elasticsearch indices and config files regularly.
+  Store SMTP credentials securely (e.g., AWS Secrets Manager).
 
-### Workflow Diagram
+---
 
-```mermaid
-flowchart LR
-    Start["[Start: Trigger Notification](#step-7-run-notification-script)"]
-    FetchData["[Fetch Employee Emails](#step-4-add-employee-data) from Elasticsearch"]
-    GenerateMsg["[Generate Email Content](#step-5-fix-python-code-issues)"]
-    SendEmail["[Send Email via SMTP](#step-3-configure-smtp--elasticsearch)"]
-    LogES["[Log Notification Status](#step-4-add-employee-data) in Elasticsearch"]
-    End["End: Notification sent successfully"]
+## Troubleshooting
 
-    Start --> FetchData --> GenerateMsg --> SendEmail --> LogES --> End
-```
+| Issue                     | Symptom                     | Resolution                                                |
+| ------------------------- | --------------------------- | --------------------------------------------------------- |
+| SMTP Authentication Error | “535 Authentication failed” | Check Gmail app password, enable SMTP access              |
+| Elasticsearch Unreachable | Connection error            | Verify host/port and credentials                          |
+| No Emails Sent            | No outgoing mail            | Ensure port 587 open and config.yaml correct              |
+| Missing Employee Data     | No recipients found         | Verify `employee-management` index and document structure |
+| Slow Performance          | Delayed notification        | Check resource usage, scale up container                  |
 
 ---
 
 ## FAQs
 
-* [Why use a proxy in React?](https://create-react-app.dev/docs/proxying-api-requests-in-development/)
-* [CORS explanation](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS)
-* [Elasticsearch integration with Python](https://www.elastic.co/guide/en/elasticsearch/client/python-api/current/index.html)
+| Question                                                 | Answer / Reference                                                                                                                            |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| **What does the Notification API do?**                   | It sends automated email alerts to employees using SMTP and logs delivery status to Elasticsearch.                                            |
+| **How can I avoid CORS issues when testing with React?** | Use a proxy in React. [React Proxy Setup Docs](https://create-react-app.dev/docs/proxying-api-requests-in-development/)                       |
+| **Why use Elasticsearch instead of a SQL database?**     | Elasticsearch provides faster search, scalability, and JSON document flexibility. [Elasticsearch Docs](https://www.elastic.co/elasticsearch/) |
+| **How do I create Gmail App Passwords for SMTP?**        | [Google App Password Setup](https://myaccount.google.com/apppasswords)                                                                        |
+| **Can I deploy this on AWS or Docker?**                  | Yes — any environment supporting Python 3.10+ and network access to Elasticsearch and SMTP works fine.                                        |
+| **Where can I learn about Cron job scheduling?**         | [Crontab Guru Reference](https://crontab.guru/)                                                                                               |
+
+---
+
+## Contact
+
+| Name           | Email                                                     | Role                   |
+| -------------- | --------------------------------------------------------- | ---------------------- |
+| Asma Badr Khan | [rehan.ali9325@gmail.com](mailto:rehan.ali9325@gmail.com) |Maintainer |
 
 ---
 
 ## Reference Table
 
-| Reference                   | Description                            | Link                                                                                               |
-| --------------------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| Notification API Repo       | Source code and main repo              | [GitHub](https://github.com/OT-MICROSERVICES/notification-worker)                                  |
-| Gmail App Passwords         | How to generate app passwords for SMTP | [Google Account](https://myaccount.google.com/apppasswords)                                        |
-| Elasticsearch Python Client | Official Python client documentation   | [Elastic Docs](https://www.elastic.co/guide/en/elasticsearch/client/python-api/current/index.html) |
-| React Proxy Setup           | Avoiding CORS in development           | [Create React App Docs](https://create-react-app.dev/docs/proxying-api-requests-in-development/)   |
-| Cron Jobs                   | Scheduling scripts in Linux            | [Cron Tutorial](https://crontab.guru/)                                                             |
+| Reference                   | Description           | Link                                                                                               |
+| --------------------------- | --------------------- | -------------------------------------------------------------------------------------------------- |
+| Notification API Repo       | Source code           | [GitHub](https://github.com/OT-MICROSERVICES/notification-worker)                                  |
+| Elasticsearch Python Client | Official Docs         | [Elastic Docs](https://www.elastic.co/guide/en/elasticsearch/client/python-api/current/index.html) |
+| React Proxy Setup           | CORS handling         | [Create React App Docs](https://create-react-app.dev/docs/proxying-api-requests-in-development/)   |
+| Cron Jobs                   | Linux task scheduling | [Crontab Guru](https://crontab.guru/)                                                              |
