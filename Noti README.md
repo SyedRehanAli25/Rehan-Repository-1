@@ -6,8 +6,11 @@
 <summary>Table of Contents</summary>
 
 1. [Authors](#authors)
+
 2. [Overview](#overview)
+
 3. [Prerequisites](#prerequisites)
+
 4. [Step-by-Step Implementation](#step-by-step-implementation)
 
    * [Step 0: Clone the Repository](#step-0-clone-the-repository)
@@ -20,18 +23,19 @@
    * [Step 6: Set Config Environment Variable](#step-6-set-config-environment-variable)
    * [Step 7: Run Notification Script](#step-7-run-notification-script)
    * [Step 8: Optional Cron Scheduling](#step-8-optional-cron-scheduling)
+   * [Step 9: EC2 Metadata Token for Public IP](#step-9-ec2-metadata-token-for-public-ip)
+
 5. [Frontend Proxy Setup](#frontend-proxy-setup)
+
 6. [Architecture & Workflow](#architecture--workflow)
 
-   * [Architecture Diagram](#architecture-diagram)
-   * [Workflow Diagram](#workflow-diagram)
 7. [FAQs](#faqs)
+
 8. [Reference Table](#reference-table)
 
 </details>
 
 ---
-
 ## Author Table
 
 | Author         | Created on | Version | Last updated by | Last Edited On | Reviewer |
@@ -58,6 +62,7 @@ The SOP is intended for developers, DevOps engineers, and QA teams deploying, te
 * pip3
 * Access to Elasticsearch server
 * Gmail account or other SMTP credentials
+* EC2 instance with public IP (if deploying on AWS)
 
 ---
 
@@ -89,7 +94,7 @@ pip3 install -r requirements.txt --user
 
 ### Step 3: Configure SMTP & Elasticsearch
 
-Edit `config.yaml`:
+Edit config.yaml:
 
 ```yaml
 smtp:
@@ -106,36 +111,34 @@ elasticsearch:
   port: 9200
 ```
 
+> **Tip:** Make sure Elasticsearch is configured to listen on `0.0.0.0` in elasticsearch.yml and your **EC2 security group** allows inbound on port 9200.
+
 ---
 
 ### Step 4: Add Employee Data
 
 ```bash
-curl -X POST "http://3.218.208.75:9200/employee-management/_doc/1" \
+curl -X POST "http://98.92.131.86:9200/employee-management/_doc/1" \
 -H 'Content-Type: application/json' \
 -d '{"email": "rehan.ali9325@gmail.com","name": "Rehan Ali"}'
 ```
-<img width="1870" height="99" alt="image" src="https://github.com/user-attachments/assets/3a83ce40-e122-4669-8826-d44683ad9d81" />
+<img width="1875" height="368" alt="image" src="https://github.com/user-attachments/assets/052bf5c8-b8dc-4325-ab9d-44ea73931097" />
 
 ---
 
 ### Why We Are Using Elasticsearch
 
-Elasticsearch is used in the Notification API to efficiently **store, search, and retrieve employee data** and **log notification statuses**. Its advantages include:
-
-* **Fast Search & Retrieval:** Quickly fetch employee emails and related metadata for notifications.
-* **Scalable Storage:** Handle a growing number of employee records without performance degradation.
-* **Structured Logging:** Log notification success/failure for auditing and troubleshooting.
-* **Integration Friendly:** Seamlessly integrates with Python and other microservices in the system.
-
-By using Elasticsearch, the Notification API ensures that notifications are sent accurately and logged efficiently for future reference.
-<img width="1917" height="625" alt="image" src="https://github.com/user-attachments/assets/94e1ba8c-9c8c-46f5-8f57-972ad70673b3" />
+* Fast search & retrieval of employee emails.
+* Scalable storage for growing employee records.
+* Structured logging of notifications.
+* Easy Python integration for queries and updates.
+<img width="1915" height="611" alt="image" src="https://github.com/user-attachments/assets/6babef4c-7a9b-454a-b044-8537e4190fc5" />
 
 ---
 
 ### Step 5: Fix Python Code Issues
 
-Ensure correct config reads and email sending logic. Run:
+Ensure correct config reads and email sending logic:
 
 ```bash
 python3 notification_api.py --mode scheduled
@@ -149,7 +152,6 @@ python3 notification_api.py --mode external
 ```bash
 export CONFIG_FILE=./config.yaml
 ```
-<img width="1889" height="415" alt="image" src="https://github.com/user-attachments/assets/70007c42-d23f-4fe4-9ede-a3b1fbc353c3" />
 
 ---
 
@@ -158,6 +160,7 @@ export CONFIG_FILE=./config.yaml
 ```bash
 python3 notification_api.py --mode external
 ```
+<img width="1919" height="593" alt="image" src="https://github.com/user-attachments/assets/c9f1ddcb-f73b-4598-80c1-481fd43baaa9" />
 
 ---
 
@@ -169,15 +172,30 @@ python3 notification_api.py --mode external
 
 ---
 
+### Step 9: EC2 Metadata Token for Public IP (If Using AWS)
+
+To fetch public IP securely:
+
+```bash
+# Get a temporary token
+TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" \
+  -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+
+# Get public IP
+curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4
+```
+<img width="1905" height="787" alt="image" src="https://github.com/user-attachments/assets/b23c4b56-f0b9-461c-aeb7-f3e8de56e164" />
+
+Use this IP in your `config.yaml` if connecting from outside AWS.
+
+---
+
 ## Frontend Proxy Setup
 
 ```javascript
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
 module.exports = function(app) {
-  app.use('/employee', createProxyMiddleware({ target: 'http://localhost:8080', changeOrigin: true }));
-  app.use('/salary', createProxyMiddleware({ target: 'http://localhost:8081', changeOrigin: true }));
-  app.use('/attendance', createProxyMiddleware({ target: 'http://localhost:8085', changeOrigin: true }));
   app.use('/notification', createProxyMiddleware({ target: 'http://localhost:5001', changeOrigin: true }));
 };
 ```
@@ -186,50 +204,31 @@ module.exports = function(app) {
 
 ## Architecture & Workflow
 
-### Architecture Diagram
+### Architecture Diagram (Notification API Only)
 
 ```mermaid
 flowchart TD
-    subgraph Frontend
-        ReactApp["[React App](https://create-react-app.dev/) (localhost:3000)"]
+    subgraph Notification_System
+        Employee["Employee Data / Client"]
+        NotificationAPI["Notification API (Flask, localhost:5001)"]
+        ES["Elasticsearch (Employee Data & Logs)"]
+        SMTP["SMTP Server (Gmail/Other)"]
     end
 
-    subgraph Backend_APIs
-        EmployeeAPI["[Employee API](https://github.com/OT-MICROSERVICES/employee-api) (localhost:8080)"]
-        SalaryAPI["[Salary API](https://github.com/OT-MICROSERVICES/salary-api) (localhost:8081)"]
-        AttendanceAPI["[Attendance API](https://github.com/OT-MICROSERVICES/attendance-api) (localhost:8085)"]
-        NotificationAPI["[Notification API](https://github.com/OT-MICROSERVICES/notification-worker) (Flask, localhost:5001)"]
-    end
-
-    subgraph Elasticsearch_Server
-        ES["[Elasticsearch](https://www.elastic.co/elasticsearch/)"]
-    end
-
-    subgraph SMTP_Server
-        SMTP["[SMTP Server](https://support.google.com/mail/answer/185833) (Gmail/Other)"]
-    end
-
-    ReactApp -->|/employee/*| EmployeeAPI
-    ReactApp -->|/salary/*| SalaryAPI
-    ReactApp -->|/attendance/*| AttendanceAPI
-    ReactApp -->|/notification/*| NotificationAPI
-
+    Employee --> NotificationAPI
     NotificationAPI --> ES
     NotificationAPI --> SMTP
-    EmployeeAPI -->|Employee Data| NotificationAPI
-
-    CronJob["[Cron Scheduler](https://crontab.guru/) / Scheduled Mode"] --> NotificationAPI
 ```
 
 ### Workflow Diagram
 
 ```mermaid
 flowchart LR
-    Start["[Start: Trigger Notification](#step-7-run-notification-script)"]
-    FetchData["[Fetch Employee Emails](#step-4-add-employee-data) from Elasticsearch"]
-    GenerateMsg["[Generate Email Content](#step-5-fix-python-code-issues)"]
-    SendEmail["[Send Email via SMTP](#step-3-configure-smtp--elasticsearch)"]
-    LogES["[Log Notification Status](#step-4-add-employee-data) in Elasticsearch"]
+    Start["Start: Trigger Notification"]
+    FetchData["Fetch Employee Emails from Elasticsearch"]
+    GenerateMsg["Generate Email Content"]
+    SendEmail["Send Email via SMTP"]
+    LogES["Log Notification Status in Elasticsearch"]
     End["End: Notification sent successfully"]
 
     Start --> FetchData --> GenerateMsg --> SendEmail --> LogES --> End
@@ -252,5 +251,4 @@ flowchart LR
 | Notification API Repo       | Source code and main repo              | [GitHub](https://github.com/OT-MICROSERVICES/notification-worker)                                  |
 | Gmail App Passwords         | How to generate app passwords for SMTP | [Google Account](https://myaccount.google.com/apppasswords)                                        |
 | Elasticsearch Python Client | Official Python client documentation   | [Elastic Docs](https://www.elastic.co/guide/en/elasticsearch/client/python-api/current/index.html) |
-| React Proxy Setup           | Avoiding CORS in development           | [Create React App Docs](https://create-react-app.dev/docs/proxying-api-requests-in-development/)   |
-| Cron Jobs                   | Scheduling scripts in Linux            | [Cron Tutorial](https://crontab.guru/)                                                             |
+| Cron Jobs                   | Scheduling scripts in Linux            | [Cron Tutorial](https://crontab.guru/)           
