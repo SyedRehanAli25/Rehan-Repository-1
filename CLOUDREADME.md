@@ -76,6 +76,8 @@ flowchart TD
     end
     ALB --> Internet[Internet]
 ```
+<img width="1342" height="1266" alt="image" src="https://github.com/user-attachments/assets/07032fbc-f3f2-4b05-81a6-4f008bf9e7ff" />
+
 
 **Diagram Explanation:**
 
