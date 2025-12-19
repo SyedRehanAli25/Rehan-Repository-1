@@ -1,18 +1,16 @@
 # **Employee API | Backend Service Setup & Deployment Documentation**
 
 <p align="center">
-  <img width="260" alt="Employee API" src="https://github.com/user-attachments/assets/employee-api-banner.png" />
+  <img width="250" height="250" alt="image" src="https://github.com/user-attachments/assets/28ad2f5b-a803-4fad-9822-f996e17182ed" />
 </p>
 
----
 
 ## **Authors**
 
 | Author         | Created On | Version | Last Updated By | Last Edited On | Reviewer |
 | -------------- | ---------- | ------- | --------------- | -------------- | -------- |
-| Syed Rehan Ali | 19-12-2025 | 1.1     | Syed Rehan Ali  | 20-12-2025     | —        |
+| Syed Rehan Ali | 19-12-2025 | 1.0     | Syed Rehan Ali  | 20-12-2025     | —        |
 
----
 
 <details>
 <summary><h2><strong>Table of Contents</strong></h2></summary>
@@ -32,15 +30,16 @@
 * [Operational Commands](#operational-commands)
 * [Troubleshooting](#troubleshooting)
 * [Best Practices](#best-practices)
+* [Systemd Service File](#systemd-service-file)
+* [Reference Links](#reference-links)
 * [Conclusion](#conclusion)
 
 </details>
 
----
 
 ## **Introduction**
 
-The **Employee API** is a production-ready backend service written in **Go (Golang)** using the **Gin framework**, designed to expose employee-related business APIs backed by a **distributed NoSQL database (ScyllaDB / Apache Cassandra)**.
+The **Employee API** is a production-ready backend service written in **Go (Golang)** using the **Gin framework**, designed to expose employee-related business APIs backed by a **distributed NoSQL database (ScyllaDB / Cassandra)** and optionally **Redis** for caching.
 
 This document describes the **ACTUAL setup**, where:
 
@@ -49,7 +48,6 @@ This document describes the **ACTUAL setup**, where:
 * Other teams (Frontend / Database) can safely integrate
 * No mock or dummy layers are involved
 
----
 
 ## **Purpose of This Document**
 
@@ -60,21 +58,27 @@ This document ensures:
 * Confidence for **DB and frontend teams**
 * Repeatable deployment across environments (DEV / QA / UAT)
 
----
-
 ## **System Architecture**
 
 ```mermaid
 flowchart TD
     FE[Frontend / Client] -->|HTTP REST| API[Employee API - Gin Server]
-    API -->|CQL| DB[(ScyllaDB / Cassandra)]
+    API -->|CQL| DB[(ScyllaDB)]
+    API -->|Cache| REDIS[(Redis)]
     DB --> API
+    REDIS --> API
     API --> FE
 ```
 
----
+**Explanation:**
+
+* **Frontend / Client** – Sends HTTP requests to API
+* **Employee API (Gin Server)** – Handles routing, business logic, DB/cache access
+* **ScyllaDB** – Persistent employee data storage
+* **Redis** – Optional caching layer for fast access (search, lookup, etc.)
 
 ## **Tools & Technologies**
+For running the application, we need following things configured:
 
 | Tool                 | Purpose                   |
 | -------------------- | ------------------------- |
@@ -82,10 +86,13 @@ flowchart TD
 | Gin                  | HTTP routing & middleware |
 | Viper                | Configuration management  |
 | ScyllaDB / Cassandra | Distributed NoSQL DB      |
+| Redis                | Caching layer             |
 | systemd              | Service management        |
 | Linux (Ubuntu)       | Hosting OS                |
 
----
+[ScyllaDB](https://www.scylladb.com/)
+
+[Redis](https://github.com/redis.com/)
 
 ## **Database Architecture**
 
@@ -98,17 +105,16 @@ flowchart TD
 | Horizontal scaling | Easy node expansion            |
 | CQL support        | SQL-like querying              |
 
----
 
 ### **Database Communication Flow**
 
 1. API receives HTTP request
 2. API validates input
-3. API executes CQL query
-4. DB responds
-5. API returns JSON response
+3. API queries **Redis cache** first (if configured)
+4. If cache miss, API executes **CQL query** on ScyllaDB
+5. DB responds and API optionally caches response in Redis
+6. API returns JSON response
 
----
 
 ## **Project Structure Explained**
 
@@ -122,23 +128,21 @@ employee-api/
 │   ├── viper.go        # Reads config.yaml
 │
 ├── model/
-│   ├── employee.go    # Data models
+│   ├── employee.go     # Data models
 │
 ├── routes/
-│   ├── routes.go      # API routing
+│   ├── routes.go       # API routing
 │
 ├── middleware/
-│   ├── logging.go     # Request logging
+│   ├── logging.go      # Request logging
 │
 ├── migration/
-│   ├── *.cql          # DB schema files
+│   ├── *.cql           # DB schema files
 │
 ├── main.go             # Application entrypoint
 ├── config.yaml         # Environment config
 └── go.mod
 ```
-
----
 
 ## **Configuration Management**
 
@@ -154,6 +158,10 @@ database:
   keyspace: employee_ks
   username: cassandra
   password: cassandra
+
+redis:
+  host: 127.0.0.1
+  port: 6379
 ```
 
 ### **How Viper Works**
@@ -178,7 +186,7 @@ sudo apt install golang -y
 
 ### **Step 2: Install ScyllaDB / Cassandra**
 
-> ⚠️ Only ONE DB is required, not both
+**Only ONE DB is required, not both**
 
 #### **Option A: Cassandra**
 
@@ -215,62 +223,28 @@ WITH replication = {
 cqlsh -f migration/001_employee_table.cql
 ```
 
----
 
 ## **Build & Dependency Management Notes**
 
 ### **Handling Dependencies**
 
-1. Download all modules:
-
 ```bash
 go mod download -x
 ```
 
-> ⚠️ The `-x` flag prints commands to debug slow downloads or compilation.
+**The `-x` flag prints commands to debug slow downloads or compilation.**
 
-2. Some packages (like `github.com/ugorji/go/codec`) may take time on first build — this is normal.
-
----
 
 ### **Building the API**
 
-1. Clean previous builds:
-
 ```bash
 go clean
-```
-
-2. Precompile dependencies (optional, speeds up main build):
-
-```bash
 go install -v ./...
-```
-
-3. Build the main API binary:
-
-```bash
 go build -v -o employee-api main.go
 ```
 
-> Ensure all local package imports exist relative to your module to avoid `package ... is not in std` errors.
-
----
-
-### **Common Build Issues & Fixes**
-
-| Issue                                                              | Cause                                    | Solution                                                |
-| ------------------------------------------------------------------ | ---------------------------------------- | ------------------------------------------------------- |
-| `named files must all be in one directory; have routes and config` | Trying to build multiple directories     | Build only `main.go` or remove `mock` files             |
-| Build seems stuck                                                  | Large dependencies compiling             | Wait; first-time build of packages can be CPU-intensive |
-| `cannot write multiple packages to non-directory`                  | Using `go build -o` on multiple packages | Use `go install ./...` or build `main.go` only          |
-| `package ... is not in std`                                        | Wrong import paths                       | Check `go.mod` and ensure local modules exist           |
-
----
 
 ## **Running Employee API (Actual Mode)**
-
-### **Run API**
 
 ```bash
 export GIN_MODE=release
@@ -284,7 +258,27 @@ Listening on :8082
 Connected to ScyllaDB
 ```
 
----
+
+## **API Endpoints**
+
+| HTTP Method | Endpoint                              | Description                                | Notes                                  |
+| ----------- | ------------------------------------- | ------------------------------------------ | -------------------------------------- |
+| GET         | `/api/v1/employee/health`             | Basic health check of the API              | Returns status OK                      |
+| GET         | `/api/v1/employee/health/detail`      | Detailed health check including DB & cache | Returns JSON status of DB and Redis    |
+| POST        | `/api/v1/employee/create`             | Create a new employee record               | Accepts JSON payload                   |
+| GET         | `/api/v1/employee/search`             | Search employee by general parameters      | Query params supported                 |
+| GET         | `/api/v1/employee/search/all`         | Get all employee records                   | Returns array of employees             |
+| GET         | `/api/v1/employee/search/location`    | Filter employees by location               | Query param: `location=<city>`         |
+| GET         | `/api/v1/employee/search/designation` | Filter employees by designation            | Query param: `designation=<role>`      |
+| GET         | `/api/v1/employee/search/status`      | Filter employees by employment status      | Query param: `status=active`           |
+| GET         | `/api/v1/employee/search/roles`       | Filter employees by roles                  | Query param: `roles=admin,user`        |
+| GET         | `/swagger/*any`                       | Swagger UI                                 | Access via SSH tunnel or local network |
+
+**Notes:**
+
+* All endpoints respond in **JSON** format.
+* **Redis caching** is optional but recommended for frequent queries.
+
 
 ## **API Exposure & Networking**
 
@@ -294,21 +288,27 @@ Connected to ScyllaDB
 http://<SERVER_IP>:8082/api/v1/employee
 ```
 
+### **SSH Tunnel for Private Servers**
+
+If your server only has a private IP:
+
+```bash
+ssh -i ~/.ssh/otms.pem.pem -L 8082:10.0.11.234:8082 ubuntu@<BASTION_PUBLIC_IP> -N
+```
+
+* After running this, you can open `http://localhost:8082/swagger/index.html` to access Swagger.
+* This needs to run **only once** per terminal session.
+
 ### **Firewall / Security Group**
 
-| Rule     | Value           |
-| -------- | --------------- |
-| Port     | 8082            |
-| Protocol | TCP             |
-| Source   | Frontend subnet |
+| Rule     | Value                         |
+| -------- | ----------------------------- |
+| Port     | 8082                          |
+| Protocol | TCP                           |
+| Source   | Frontend subnet or SSH tunnel |
 
----
 
 ## **Database Safety & Isolation**
-
-### ❓ Will this affect DB team systems?
-
-**NO — if configured correctly**
 
 | Scenario                | Impact                  |
 | ----------------------- | ----------------------- |
@@ -321,7 +321,6 @@ http://<SERVER_IP>:8082/api/v1/employee
 ✔ DB team owns DB lifecycle
 ✔ API cannot destroy DB infra
 
----
 
 ## **Operational Commands**
 
@@ -332,7 +331,36 @@ http://<SERVER_IP>:8082/api/v1/employee
 | `journalctl -u employee-api`   | Logs          |
 | `netstat -tulpn`               | Port check    |
 
----
+
+## **Systemd Service File**
+
+**Path:** `/etc/systemd/system/employee-api.service`
+
+```ini
+[Unit]
+Description=Employee API service
+After=network.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/employee-api/employee-api
+ExecStart=/home/ubuntu/employee-api/employee-api/employee-api
+Restart=always
+RestartSec=5
+Environment=GIN_MODE=release
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**Commands:**
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl start employee-api
+sudo systemctl enable employee-api
+sudo systemctl status employee-api
+```
 
 ## **Troubleshooting**
 
@@ -344,7 +372,6 @@ http://<SERVER_IP>:8082/api/v1/employee
 | Panic on startup     | Migration missing | Run CQL files                                    |
 | Build stuck          | Large dependency  | Use `go install ./...` first, then build main.go |
 
----
 
 ## **Best Practices**
 
@@ -354,23 +381,27 @@ http://<SERVER_IP>:8082/api/v1/employee
 | Read-only DB users  | Extra safety       |
 | Health checks       | Monitoring         |
 | Logging middleware  | Debugging          |
+| Redis cache         | Reduce DB load     |
 
----
+
+## **Reference Links**
+
+| Topic         | Link                                                                                                             |
+| ------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Gin Framework | [https://gin-gonic.com/docs/](https://gin-gonic.com/docs/)                                                       |
+| Viper         | [https://github.com/spf13/viper](https://github.com/spf13/viper)                                                 |
+| ScyllaDB      | [https://www.scylladb.com/](https://www.scylladb.com/)                                                           |
+| Cassandra CQL | [https://cassandra.apache.org/doc/latest/cql/index.html](https://cassandra.apache.org/doc/latest/cql/index.html) |
+| Redis         | [https://redis.io/docs/](https://redis.io/docs/)                                                                 |
+| systemd       | [https://www.freedesktop.org/wiki/Software/systemd/](https://www.freedesktop.org/wiki/Software/systemd/)         |
+| Swagger       | [https://swagger.io/docs/](https://swagger.io/docs/)                                                             |
+
 
 ## **Conclusion**
 
 This document defines a **real, production-grade Employee API setup** that:
 
-* Safely connects to ScyllaDB / Cassandra
-* Can be exposed on server IP
-* Does **NOT** interfere with DB team ownership
-* Supports scalable, secure enterprise usage
-
----
-
-### ✅ You are safe to:
-
-* Expose this API
-* Share it with frontend teams
-* Allow DB team connectivity
-* Run it on your server IP
+* Safely connects to ScyllaDB / Cassandra and optionally Redis
+* Can be exposed on server IP or via SSH tunnel
+* Supports enterprise-scale integration
+* Provides endpoints for full CRUD + health checks + Swagger
