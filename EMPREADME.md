@@ -4,13 +4,11 @@
   <img width="250" height="250" alt="image" src="https://github.com/user-attachments/assets/28ad2f5b-a803-4fad-9822-f996e17182ed" />
 </p>
 
-
 ## **Authors**
 
 | Author         | Created On | Version | Last Updated By | Last Edited On | Reviewer |
 | -------------- | ---------- | ------- | --------------- | -------------- | -------- |
 | Syed Rehan Ali | 19-12-2025 | 1.0     | Syed Rehan Ali  | 20-12-2025     | —        |
-
 
 <details>
 <summary><h2><strong>Table of Contents</strong></h2></summary>
@@ -77,7 +75,9 @@ flowchart TD
 * **ScyllaDB** – Persistent employee data storage
 * **Redis** – Optional caching layer for fast access (search, lookup, etc.)
 
+
 ## **Tools & Technologies**
+
 For running the application, we need following things configured:
 
 | Tool                 | Purpose                   |
@@ -94,6 +94,8 @@ For running the application, we need following things configured:
 
 [Redis](https://github.com/redis.com/)
 
+---
+
 ## **Database Architecture**
 
 ### **Why ScyllaDB / Cassandra**
@@ -105,7 +107,6 @@ For running the application, we need following things configured:
 | Horizontal scaling | Easy node expansion            |
 | CQL support        | SQL-like querying              |
 
-
 ### **Database Communication Flow**
 
 1. API receives HTTP request
@@ -115,6 +116,7 @@ For running the application, we need following things configured:
 5. DB responds and API optionally caches response in Redis
 6. API returns JSON response
 
+---
 
 ## **Project Structure Explained**
 
@@ -143,6 +145,8 @@ employee-api/
 ├── config.yaml         # Environment config
 └── go.mod
 ```
+
+---
 
 ## **Configuration Management**
 
@@ -176,10 +180,20 @@ redis:
 
 ## **Step-by-Step Setup Guide**
 
+### **Step 0: Update System (Recommended)**
+
+```bash
+sudo apt-get update -y
+sudo apt-get upgrade -y
+```
+
+---
+
 ### **Step 1: Install Go**
 
 ```bash
 sudo apt install golang -y
+go version
 ```
 
 ---
@@ -223,17 +237,19 @@ WITH replication = {
 cqlsh -f migration/001_employee_table.cql
 ```
 
+---
 
 ## **Build & Dependency Management Notes**
 
 ### **Handling Dependencies**
 
 ```bash
+go mod tidy
 go mod download -x
 ```
 
-**The `-x` flag prints commands to debug slow downloads or compilation.**
-
+> `go mod tidy` ensures all required dependencies are present and cleans unused modules.
+> `-x` prints debug info for slow downloads or compilation.
 
 ### **Building the API**
 
@@ -243,12 +259,19 @@ go install -v ./...
 go build -v -o employee-api main.go
 ```
 
+---
 
 ## **Running Employee API (Actual Mode)**
 
 ```bash
 export GIN_MODE=release
 ./employee-api
+```
+
+### **Verify API is Running**
+
+```bash
+curl http://localhost:8082/api/v1/employee/health
 ```
 
 Expected:
@@ -258,6 +281,7 @@ Listening on :8082
 Connected to ScyllaDB
 ```
 
+---
 
 ## **API Endpoints**
 
@@ -274,11 +298,7 @@ Connected to ScyllaDB
 | GET         | `/api/v1/employee/search/roles`       | Filter employees by roles                  | Query param: `roles=admin,user`        |
 | GET         | `/swagger/*any`                       | Swagger UI                                 | Access via SSH tunnel or local network |
 
-**Notes:**
-
-* All endpoints respond in **JSON** format.
-* **Redis caching** is optional but recommended for frequent queries.
-
+---
 
 ## **API Exposure & Networking**
 
@@ -290,16 +310,16 @@ http://<SERVER_IP>:8082/api/v1/employee
 
 ### **SSH Tunnel for Private Servers**
 
-If your server only has a private IP:
-
 ```bash
 ssh -i ~/.ssh/otms.pem.pem -L 8082:10.0.11.234:8082 ubuntu@<BASTION_PUBLIC_IP> -N
 ```
 
-* After running this, you can open `http://localhost:8082/swagger/index.html` to access Swagger.
-* This needs to run **only once** per terminal session.
-
 ### **Firewall / Security Group**
+
+```bash
+sudo ufw allow 8082/tcp
+sudo ufw status
+```
 
 | Rule     | Value                         |
 | -------- | ----------------------------- |
@@ -307,6 +327,7 @@ ssh -i ~/.ssh/otms.pem.pem -L 8082:10.0.11.234:8082 ubuntu@<BASTION_PUBLIC_IP> -
 | Protocol | TCP                           |
 | Source   | Frontend subnet or SSH tunnel |
 
+---
 
 ## **Database Safety & Isolation**
 
@@ -321,16 +342,19 @@ ssh -i ~/.ssh/otms.pem.pem -L 8082:10.0.11.234:8082 ubuntu@<BASTION_PUBLIC_IP> -
 ✔ DB team owns DB lifecycle
 ✔ API cannot destroy DB infra
 
+---
 
 ## **Operational Commands**
 
-| Command                        | Purpose       |
-| ------------------------------ | ------------- |
-| `systemctl start employee-api` | Start service |
-| `systemctl stop employee-api`  | Stop service  |
-| `journalctl -u employee-api`   | Logs          |
-| `netstat -tulpn`               | Port check    |
+| Command                         | Purpose                  |
+| ------------------------------- | ------------------------ |
+| `systemctl start employee-api`  | Start service            |
+| `systemctl stop employee-api`   | Stop service             |
+| `journalctl -u employee-api`    | Logs                     |
+| `journalctl -u employee-api -f` | Follow logs in real-time |
+| `netstat -tulpn`                | Port check               |
 
+---
 
 ## **Systemd Service File**
 
@@ -361,6 +385,7 @@ sudo systemctl start employee-api
 sudo systemctl enable employee-api
 sudo systemctl status employee-api
 ```
+
 
 ## **Troubleshooting**
 
