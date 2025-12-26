@@ -1,7 +1,5 @@
 # Notification API Implementation Document
 
-<img width="112" height="112" alt="image" src="https://github.com/user-attachments/assets/a94cca2d-e9df-43b5-823a-b5f6b59d9563" />
-
 <details>
 <summary>Table of Contents</summary>
 
@@ -12,15 +10,16 @@
 
    * [Step 0: Clone the Repository](#step-0-clone-the-repository)
    * [Step 1: Navigate to Project](#step-1-navigate-to-project)
+   * [Step 1a: Setup Virtual Environment](#step-1a-setup-virtual-environment)
    * [Step 2: Install Dependencies](#step-2-install-dependencies)
    * [Step 3: Configure SMTP & Elasticsearch](#step-3-configure-smtp--elasticsearch)
-   * [Step 4: Reset Elasticsearch Password (Optional)](#step-4-reset-elasticsearch-password-optional)
-   * [Step 5: Add Employee Data](#step-5-add-employee-data)
+   * [Step 4: Add Employee Data](#step-4-add-employee-data)
    * [Why We Are Using Elasticsearch](#why-we-are-using-elasticsearch)
+   * [Step 5: Run Notification Script](#step-5-run-notification-script)
    * [Step 6: Set Config Environment Variable](#step-6-set-config-environment-variable)
-   * [Step 7: Run Notification Script](#step-7-run-notification-script)
-   * [Step 8: Optional Cron Scheduling](#step-8-optional-cron-scheduling)
-   * [Step 9: EC2 Metadata Token for Public IP](#step-9-ec2-metadata-token-for-public-ip)
+   * [Step 7: Optional Cron Scheduling](#step-7-optional-cron-scheduling)
+   * [Step 8: Elasticsearch Troubleshooting](#step-8-elasticsearch-troubleshooting)
+   * [Step 9: Deactivate & Reactivate venv](#step-9-deactivate--reactivate-venv)
 5. [Frontend Proxy Setup](#frontend-proxy-setup)
 6. [Architecture & Workflow](#architecture--workflow)
 7. [FAQs](#faqs)
@@ -28,25 +27,22 @@
 
 </details>
 
+---
 
-## Authors
+## Author Table
 
 | Author         | Created on | Version | Last updated by | Last Edited On | Reviewer |
 | -------------- | ---------- | ------- | --------------- | -------------- | -------- |
 | Syed Rehan Ali | 2025-11-10 | 1.1     | Syed Rehan Ali  | 2025-11-10     | Team     |
-| Syed Rehan Ali |            | 1.2     | Syed Rehan Ali  |                |          |
-| Syed Rehan Ali |            | 1.3     | Syed Rehan Ali  | 2025-12-26     | Team     |
 
 ---
 
 ## Overview
 
-This document provides a **Step-by-Step Standard Operating Procedure (SOP)** for the **Notification API**, a microservice designed to send email notifications to employees.
+The **Notification API** is a microservice that sends emails to employees.
+It fetches employee data from Elasticsearch, generates emails, sends them via SMTP, and logs notifications in Elasticsearch.
 
-The SOP is intended for developers, DevOps engineers, and QA teams deploying, testing, or maintaining the Notification API.
-
-**Notification API repository:** [GitHub - Notification Worker](https://github.com/OT-MICROSERVICES/notification-worker)
-
+---
 
 ## Prerequisites
 
@@ -55,7 +51,7 @@ The SOP is intended for developers, DevOps engineers, and QA teams deploying, te
 * Access to Elasticsearch server
 * Gmail account or other SMTP credentials
 * EC2 instance with public IP (if deploying on AWS)
-* Elasticsearch service installed and running (`sudo systemctl start elasticsearch.service`)
+* `curl` for testing endpoints
 
 ---
 
@@ -67,19 +63,40 @@ The SOP is intended for developers, DevOps engineers, and QA teams deploying, te
 git clone https://github.com/OT-MICROSERVICES/notification-worker.git
 ```
 
-
 ### Step 1: Navigate to Project
 
 ```bash
 cd ~/notification-worker
 ```
 
----
 
-### Step 2: Install Dependencies
+### Step 1a: Setup Virtual Environment
+
+1. **Create venv** (if not created):
 
 ```bash
-pip3 install -r requirements.txt --user
+python3 -m venv venv
+```
+
+2. **Activate venv**:
+
+```bash
+source venv/bin/activate
+```
+
+Your shell prompt will show `(venv)`.
+
+3. **Install dependencies** inside venv:
+
+```bash
+pip install -r requirements.txt
+```
+
+
+### Step 2: Install Dependencies (if venv already active)
+
+```bash
+pip install -r requirements.txt
 ```
 
 
@@ -91,58 +108,54 @@ Edit `config.yaml`:
 smtp:
   from: "rehan.ali9325@gmail.com"
   username: "rehan.ali9325@gmail.com"
-  password: "your-app-password"   # Gmail app password
+  password: "your-app-password"  # Gmail app password
   smtp_server: "smtp.gmail.com"
-  smtp_port: "587"
+  smtp_port: "587"               # TLS port
 
 elasticsearch:
   username: "elastic"
-  password: "Elastic123!"         # your chosen easy password
+  password: "elastic"            # Elasticsearch password
   host: "127.0.0.1"
   port: 9200
-  use_ssl: true                    # enable HTTPS
-  verify_certs: false              # only if self-signed certificate
-```
-**Tip:** Ensure Elasticsearch listens on `0.0.0.0` and firewall allows inbound on port 9200.
-
-
-### Step 4: Reset Elasticsearch Password (Optional)
-
-To set an easy password:
-
-```bash
-sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -i
+  scheme: "https"
+  use_ssl: true
+  verify_certs: false            # set false for self-signed cert
 ```
 
-* Enter your desired password, e.g., `Elastic123!`
-* Update `config.yaml` with the new password.
+**Tips:**
 
-Test connection:
-
-```bash
-curl -u elastic:Elastic123! https://127.0.0.1:9200 --insecure
-```
-
-You should get cluster info JSON instead of `401 Unauthorized`.
+* For Elasticsearch external access, ensure `elasticsearch.yml` has `network.host: 0.0.0.0` and the EC2 security group allows inbound 9200.
+* Use `elasticsearch-reset-password -u elastic` to set an easy password.
 
 
-### Step 5: Add Employee Data
+### Step 4: Add Employee Data
 
 ```bash
 curl -X POST "https://127.0.0.1:9200/employee-management/_doc/1" \
--u elastic:Elastic123! --insecure \
+-u elastic:elastic \
 -H 'Content-Type: application/json' \
--d '{"email": "rehan.ali9325@gmail.com","name": "Rehan Ali"}'
+-d '{"email": "rehan.ali9325@gmail.com","name": "Rehan Ali"}' \
+--insecure
 ```
 
----
 
 ### Why We Are Using Elasticsearch
 
-* Fast search & retrieval of employee emails
-* Scalable storage for employee records
-* Structured logging of notifications
-* Easy Python integration for queries and updates
+* Fast retrieval of employee emails
+* Scalable storage
+* Structured logging
+* Easy Python integration
+
+
+### Step 5: Run Notification Script
+
+Activate venv and run:
+
+```bash
+source venv/bin/activate
+export CONFIG_FILE=/home/ubuntu/notification-worker/config.yaml
+python3 notification_api.py --mode external
+```
 
 
 ### Step 6: Set Config Environment Variable
@@ -151,24 +164,8 @@ curl -X POST "https://127.0.0.1:9200/employee-management/_doc/1" \
 export CONFIG_FILE=/home/ubuntu/notification-worker/config.yaml
 ```
 
----
 
-### Step 7: Run Notification Script
-
-```bash
-python3 notification_api.py --mode external
-```
-
-**Troubleshooting:**
-
-* If you see `ConnectionError` or `RemoteDisconnected`, ensure:
-
-  1. Elasticsearch is running: `sudo systemctl status elasticsearch.service`
-  2. Correct password in `config.yaml`
-  3. `use_ssl: true` matches the actual Elasticsearch setup
-
-
-### Step 8: Optional Cron Scheduling
+### Step 7: Optional Cron Scheduling
 
 ```cron
 0 * * * * CONFIG_FILE=/home/ubuntu/notification-worker/config.yaml /usr/bin/python3 /home/ubuntu/notification-worker/notification_api.py --mode external
@@ -176,20 +173,54 @@ python3 notification_api.py --mode external
 
 ---
 
-### Step 9: EC2 Metadata Token for Public IP (If Using AWS)
+### Step 8: Elasticsearch Troubleshooting
+
+1. **Check service status**:
 
 ```bash
-# Get a temporary token
-TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" \
-  -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
-
-# Get public IP
-curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4
+sudo systemctl status elasticsearch.service
 ```
 
-Use this IP in your `config.yaml` if connecting from outside AWS.
+2. **Start Elasticsearch**:
 
----
+```bash
+sudo systemctl start elasticsearch.service
+```
+
+3. **Enable service at boot**:
+
+```bash
+sudo systemctl enable elasticsearch.service
+```
+
+4. **Test Elasticsearch connection**:
+
+```bash
+curl -u elastic:elastic https://127.0.0.1:9200 --insecure
+```
+
+5. **Reset password if login fails**:
+
+```bash
+sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -i
+```
+
+
+### Step 9: Deactivate & Reactivate venv
+
+**Deactivate:**
+
+```bash
+deactivate
+```
+
+**Reactivate later:**
+
+```bash
+cd ~/notification-worker
+source venv/bin/activate
+```
+
 
 ## Frontend Proxy Setup
 
@@ -201,9 +232,8 @@ module.exports = function(app) {
 };
 ```
 
-## Architecture & Workflow
 
-### Architecture Diagram
+## Architecture & Workflow
 
 ```mermaid
 flowchart TD
@@ -219,25 +249,11 @@ flowchart TD
     NotificationAPI --> SMTP
 ```
 
-### Workflow Diagram
-
-```mermaid
-flowchart LR
-    Start["Start: Trigger Notification"]
-    FetchData["Fetch Employee Emails from Elasticsearch"]
-    GenerateMsg["Generate Email Content"]
-    SendEmail["Send Email via SMTP"]
-    LogES["Log Notification Status in Elasticsearch"]
-    End["End: Notification sent successfully"]
-
-    Start --> FetchData --> GenerateMsg --> SendEmail --> LogES --> End
-```
-
 ## FAQs
 
 * [Why use a proxy in React?](https://create-react-app.dev/docs/proxying-api-requests-in-development/)
 * [CORS explanation](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS)
-* [Elasticsearch integration with Python](https://www.elastic.co/guide/en/elasticsearch/client/python-api/current/index.html)
+* [Elasticsearch Python Client](https://www.elastic.co/guide/en/elasticsearch/client/python-api/current/index.html)
 
 
 ## Reference Table
