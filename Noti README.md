@@ -1,5 +1,7 @@
 # Notification API Implementation Document
 
+<img width="112" height="112" alt="image" src="https://github.com/user-attachments/assets/a94cca2d-e9df-43b5-823a-b5f6b59d9563" />
+
 <details>
 <summary>Table of Contents</summary>
 
@@ -12,8 +14,9 @@
    * [Step 1: Navigate to Project](#step-1-navigate-to-project)
    * [Step 2: Install Dependencies](#step-2-install-dependencies)
    * [Step 3: Configure SMTP & Elasticsearch](#step-3-configure-smtp--elasticsearch)
-   * [Step 4: Add Employee Data](#step-4-add-employee-data)
-   * [Step 5: Fix Python Code Issues](#step-5-fix-python-code-issues)
+   * [Step 4: Reset Elasticsearch Password (Optional)](#step-4-reset-elasticsearch-password-optional)
+   * [Step 5: Add Employee Data](#step-5-add-employee-data)
+   * [Why We Are Using Elasticsearch](#why-we-are-using-elasticsearch)
    * [Step 6: Set Config Environment Variable](#step-6-set-config-environment-variable)
    * [Step 7: Run Notification Script](#step-7-run-notification-script)
    * [Step 8: Optional Cron Scheduling](#step-8-optional-cron-scheduling)
@@ -21,12 +24,10 @@
 5. [Frontend Proxy Setup](#frontend-proxy-setup)
 6. [Architecture & Workflow](#architecture--workflow)
 7. [FAQs](#faqs)
-8. [Troubleshooting](#troubleshooting)
-9. [Reference Table](#reference-table)
+8. [Reference Table](#reference-table)
 
 </details>
 
----
 
 ## Authors
 
@@ -34,7 +35,7 @@
 | -------------- | ---------- | ------- | --------------- | -------------- | -------- |
 | Syed Rehan Ali | 2025-11-10 | 1.1     | Syed Rehan Ali  | 2025-11-10     | Team     |
 | Syed Rehan Ali |            | 1.2     | Syed Rehan Ali  |                |          |
-| Syed Rehan Ali |            | 1.3     | Syed Rehan Ali  | 2025-12-26     |          |
+| Syed Rehan Ali |            | 1.3     | Syed Rehan Ali  | 2025-12-26     | Team     |
 
 ---
 
@@ -44,19 +45,17 @@ This document provides a **Step-by-Step Standard Operating Procedure (SOP)** for
 
 The SOP is intended for developers, DevOps engineers, and QA teams deploying, testing, or maintaining the Notification API.
 
-**Repository:** [Notification Worker GitHub](https://github.com/OT-MICROSERVICES/notification-worker)
+**Notification API repository:** [GitHub - Notification Worker](https://github.com/OT-MICROSERVICES/notification-worker)
 
----
 
 ## Prerequisites
 
-* Ubuntu 20.04+ (or compatible Linux)
-* Python 3.10+ and pip3
-* Elasticsearch 8.x installed on local/remote server
-* SMTP account (Gmail recommended)
+* Python 3.10+
+* pip3
+* Access to Elasticsearch server
+* Gmail account or other SMTP credentials
 * EC2 instance with public IP (if deploying on AWS)
-* `curl` installed
-* `nano` or any text editor
+* Elasticsearch service installed and running (`sudo systemctl start elasticsearch.service`)
 
 ---
 
@@ -67,6 +66,7 @@ The SOP is intended for developers, DevOps engineers, and QA teams deploying, te
 ```bash
 git clone https://github.com/OT-MICROSERVICES/notification-worker.git
 ```
+
 
 ### Step 1: Navigate to Project
 
@@ -82,9 +82,6 @@ cd ~/notification-worker
 pip3 install -r requirements.txt --user
 ```
 
-> Installs required Python libraries listed in `requirements.txt`.
-
----
 
 ### Step 3: Configure SMTP & Elasticsearch
 
@@ -92,61 +89,67 @@ Edit `config.yaml`:
 
 ```yaml
 smtp:
-  from: "your-email@gmail.com"
-  username: "your-email@gmail.com"
-  password: "your-app-password"
+  from: "rehan.ali9325@gmail.com"
+  username: "rehan.ali9325@gmail.com"
+  password: "your-app-password"   # Gmail app password
   smtp_server: "smtp.gmail.com"
   smtp_port: "587"
 
 elasticsearch:
   username: "elastic"
-  password: "elastic-password"
+  password: "Elastic123!"         # your chosen easy password
   host: "127.0.0.1"
   port: 9200
-  use_ssl: true        # enable HTTPS
-  verify_certs: false  # use false if self-signed certificate
+  use_ssl: true                    # enable HTTPS
+  verify_certs: false              # only if self-signed certificate
+```
+**Tip:** Ensure Elasticsearch listens on `0.0.0.0` and firewall allows inbound on port 9200.
+
+
+### Step 4: Reset Elasticsearch Password (Optional)
+
+To set an easy password:
+
+```bash
+sudo /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -i
 ```
 
-> Notes:
->
-> * Elasticsearch must be running and listening on the specified IP.
-> * If running on AWS EC2, allow inbound port `9200` in security group.
-> * `verify_certs: false` avoids SSL errors for self-signed certificates.
+* Enter your desired password, e.g., `Elastic123!`
+* Update `config.yaml` with the new password.
 
----
+Test connection:
 
-### Step 4: Add Employee Data
+```bash
+curl -u elastic:Elastic123! https://127.0.0.1:9200 --insecure
+```
+
+You should get cluster info JSON instead of `401 Unauthorized`.
+
+
+### Step 5: Add Employee Data
 
 ```bash
 curl -X POST "https://127.0.0.1:9200/employee-management/_doc/1" \
--u elastic:elastic-password \
+-u elastic:Elastic123! --insecure \
 -H 'Content-Type: application/json' \
--d '{"email": "rehan.ali9325@gmail.com","name": "Rehan Ali"}' \
---insecure
-```
-
-> Adds a test employee to Elasticsearch. Use `--insecure` for self-signed SSL.
-
----
-
-### Step 5: Fix Python Code Issues
-
-Test script runs:
-
-```bash
-python3 notification_api.py --mode scheduled   # runs monthly
-python3 notification_api.py --mode external    # runs once manually
+-d '{"email": "rehan.ali9325@gmail.com","name": "Rehan Ali"}'
 ```
 
 ---
+
+### Why We Are Using Elasticsearch
+
+* Fast search & retrieval of employee emails
+* Scalable storage for employee records
+* Structured logging of notifications
+* Easy Python integration for queries and updates
+
 
 ### Step 6: Set Config Environment Variable
 
 ```bash
 export CONFIG_FILE=/home/ubuntu/notification-worker/config.yaml
 ```
-
-> Ensures Python script reads correct config.
 
 ---
 
@@ -156,17 +159,20 @@ export CONFIG_FILE=/home/ubuntu/notification-worker/config.yaml
 python3 notification_api.py --mode external
 ```
 
-> Logs will show success or errors while sending notifications.
+**Troubleshooting:**
 
----
+* If you see `ConnectionError` or `RemoteDisconnected`, ensure:
+
+  1. Elasticsearch is running: `sudo systemctl status elasticsearch.service`
+  2. Correct password in `config.yaml`
+  3. `use_ssl: true` matches the actual Elasticsearch setup
+
 
 ### Step 8: Optional Cron Scheduling
 
 ```cron
-0 0 1 * * CONFIG_FILE=/home/ubuntu/notification-worker/config.yaml /usr/bin/python3 /home/ubuntu/notification-worker/notification_api.py --mode external
+0 * * * * CONFIG_FILE=/home/ubuntu/notification-worker/config.yaml /usr/bin/python3 /home/ubuntu/notification-worker/notification_api.py --mode external
 ```
-
-> Runs notification on the first of every month.
 
 ---
 
@@ -181,7 +187,7 @@ TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" \
 curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4
 ```
 
-> Use this IP in your `config.yaml` if connecting from outside AWS.
+Use this IP in your `config.yaml` if connecting from outside AWS.
 
 ---
 
@@ -195,11 +201,9 @@ module.exports = function(app) {
 };
 ```
 
----
-
 ## Architecture & Workflow
 
-### Architecture Diagram (Notification API Only)
+### Architecture Diagram
 
 ```mermaid
 flowchart TD
@@ -229,54 +233,12 @@ flowchart LR
     Start --> FetchData --> GenerateMsg --> SendEmail --> LogES --> End
 ```
 
----
-
 ## FAQs
 
 * [Why use a proxy in React?](https://create-react-app.dev/docs/proxying-api-requests-in-development/)
 * [CORS explanation](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS)
-* [Elasticsearch Python Client](https://www.elastic.co/guide/en/elasticsearch/client/python-api/current/index.html)
+* [Elasticsearch integration with Python](https://www.elastic.co/guide/en/elasticsearch/client/python-api/current/index.html)
 
----
-
-## Troubleshooting
-
-1. **Config file not found**
-
-```bash
-python3 notification_api.py --mode external
-```
-
-* Ensure `CONFIG_FILE` points to correct path:
-
-```bash
-export CONFIG_FILE=/home/ubuntu/notification-worker/config.yaml
-```
-
-2. **Connection refused / RemoteDisconnected**
-
-```bash
-sudo systemctl status elasticsearch
-sudo systemctl start elasticsearch
-```
-
-* Ensure Elasticsearch is running and listening on the IP/port in `config.yaml`.
-
-3. **HTTPS / Authentication issues**
-
-```bash
-curl -u elastic:elastic-password https://127.0.0.1:9200 --insecure
-```
-
-* Use HTTPS and valid credentials in `config.yaml`.
-* For self-signed certificates, set `verify_certs: false`.
-
-4. **SMTP errors**
-
-* Check Gmail app password or SMTP settings.
-* Ensure port `587` for TLS/STARTTLS.
-
----
 
 ## Reference Table
 
